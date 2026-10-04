@@ -1,0 +1,6 @@
+{
+  "name": "DocuConvert",
+  "description": "All-in-one mobile and web file conversion tool: Convert PDF to Word, compress images & PDFs, combine images to PDF, edit documents, and convert text to image.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

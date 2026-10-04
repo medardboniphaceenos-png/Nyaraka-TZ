@@ -1,0 +1,2052 @@
+<!DOCTYPE html>
+<html lang="sw" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>DocuConvert - File Conversion & Compression Tool</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#fff1f2',
+              100: '#ffe4e6',
+              200: '#fecdd3',
+              300: '#fda4af',
+              400: '#fb7185',
+              500: '#f43f5e', // Crimson / Rose
+              600: '#e11d48',
+              700: '#be123c', // Dark Red Maroon
+              800: '#9f1239',
+              900: '#881337',
+              950: '#4c0519',
+            },
+            purple: {
+              500: '#a855f7',
+              600: '#9333ea',
+              700: '#7e22ce', // Deep Purple
+              800: '#6b21a8',
+              900: '#581c87',
+              950: '#3b0764',
+            }
+          },
+          fontFamily: {
+            sans: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Display"', '"SF Pro Text"', 'Inter', 'system-ui', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- PDF-Lib & PDF.js -->
+  <script src="https://unpkg.com/pdf-lib@1.17.9/dist/pdf-lib.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+  <style>
+    /* Custom Scrollbars */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(225, 29, 72, 0.35); border-radius: 9999px; }
+    .dark ::-webkit-scrollbar-thumb { background: rgba(190, 18, 60, 0.45); }
+
+    /* iOS Glassmorphism - Dark Red (Crimson/Maroon) & Deep Purple */
+    .ios-glass-card {
+      background: rgba(255, 255, 255, 0.78);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(244, 63, 94, 0.22);
+      box-shadow: 0 10px 30px -5px rgba(159, 18, 57, 0.08), 0 4px 12px -2px rgba(0, 0, 0, 0.03);
+    }
+    .dark .ios-glass-card {
+      background: rgba(18, 8, 24, 0.82);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(225, 29, 72, 0.22);
+      box-shadow: 0 16px 38px -8px rgba(0, 0, 0, 0.65), 0 0 24px -2px rgba(153, 27, 27, 0.18);
+    }
+
+    .ios-glass-nav {
+      background: rgba(255, 255, 255, 0.86);
+      backdrop-filter: blur(26px);
+      -webkit-backdrop-filter: blur(26px);
+      border-color: rgba(244, 63, 94, 0.18);
+    }
+    .dark .ios-glass-nav {
+      background: rgba(14, 6, 18, 0.88);
+      backdrop-filter: blur(26px);
+      -webkit-backdrop-filter: blur(26px);
+      border-color: rgba(225, 29, 72, 0.2);
+    }
+
+    .ios-glass-drawer {
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(30px);
+      -webkit-backdrop-filter: blur(30px);
+    }
+    .dark .ios-glass-drawer {
+      background: rgba(18, 7, 24, 0.94);
+      backdrop-filter: blur(30px);
+      -webkit-backdrop-filter: blur(30px);
+    }
+
+    .ios-glass-modal {
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(30px);
+      -webkit-backdrop-filter: blur(30px);
+      border: 1px solid rgba(244, 63, 94, 0.25);
+    }
+    .dark .ios-glass-modal {
+      background: rgba(20, 8, 26, 0.92);
+      backdrop-filter: blur(30px);
+      -webkit-backdrop-filter: blur(30px);
+      border: 1px solid rgba(225, 29, 72, 0.25);
+    }
+
+    /* Gradient Text & Highlights - Dark Red to Deep Purple */
+    .bg-gradient-ios {
+      background: linear-gradient(135deg, #991b1b 0%, #be123c 35%, #7e22ce 75%, #581c87 100%);
+    }
+    .text-gradient-ios {
+      background: linear-gradient(135deg, #f43f5e 0%, #fb7185 30%, #c084fc 70%, #d8b4fe 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* Drag and Drop Active */
+    .drop-active {
+      border-color: #e11d48 !important;
+      background-color: rgba(225, 29, 72, 0.08) !important;
+      transform: scale(1.015);
+    }
+
+    /* Keyframe Animations */
+    @keyframes fadeInScale {
+      0% { opacity: 0; transform: scale(0.97) translateY(8px); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .animate-tab-switch {
+      animation: fadeInScale 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { opacity: 0.4; transform: scale(1); }
+      50% { opacity: 0.7; transform: scale(1.06); }
+    }
+    .ambient-glow-1 {
+      animation: pulseGlow 8s ease-in-out infinite alternate;
+    }
+    .ambient-glow-2 {
+      animation: pulseGlow 10s ease-in-out infinite alternate-reverse;
+    }
+
+    @keyframes shimmerBar {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(250%); }
+    }
+    .animate-shimmer {
+      animation: shimmerBar 1.6s infinite linear;
+    }
+  </style>
+</head>
+<body class="bg-slate-100/90 dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-full flex flex-col font-sans antialiased pb-28 transition-colors duration-300 relative overflow-x-hidden selection:bg-rose-600 selection:text-white">
+
+  <!-- ================= AMBIENT BACKGROUND GLOWS (Dark Red & Deep Purple) ================= -->
+  <div class="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
+    <div class="ambient-glow-1 absolute -top-32 -left-20 w-96 h-96 bg-gradient-to-tr from-rose-900/35 via-red-800/30 to-purple-900/35 rounded-full blur-3xl"></div>
+    <div class="ambient-glow-2 absolute top-1/3 -right-24 w-96 h-96 bg-gradient-to-bl from-purple-900/35 via-fuchsia-950/30 to-rose-900/35 rounded-full blur-3xl"></div>
+    <div class="ambient-glow-1 absolute -bottom-32 left-1/4 w-[500px] h-[500px] bg-gradient-to-tr from-red-950/30 via-purple-950/30 to-slate-950/40 rounded-full blur-3xl"></div>
+  </div>
+
+  <!-- ================= TOP HEADER (iOS Frosted Glass) ================= -->
+  <header class="ios-glass-nav border-b sticky top-0 z-40 transition-all duration-300 shadow-xs">
+    <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+      <!-- Brand Logo -->
+      <div class="flex items-center space-x-3 cursor-pointer group" onclick="switchNavTab('home')">
+        <div class="w-10 h-10 rounded-2xl bg-gradient-ios flex items-center justify-center text-white shadow-md shadow-rose-900/30 group-hover:scale-105 transition-transform duration-300">
+          <i class="fa-solid fa-file-waveform text-lg"></i>
+        </div>
+        <div>
+          <div class="flex items-center space-x-1.5">
+            <span class="text-xl font-black tracking-tight text-slate-900 dark:text-white">Docu<span class="text-gradient-ios">Convert</span></span>
+            <span data-i18n="badgePro" class="bg-rose-100/80 dark:bg-rose-950/70 text-rose-700 dark:text-rose-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-rose-200/60 dark:border-rose-800/60 shadow-xs">
+              Pro Hub
+            </span>
+          </div>
+          <p data-i18n="brandSubtitle" class="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:block">Zana ya kubadili na kusimamia mafaili</p>
+        </div>
+      </div>
+
+      <!-- Header Actions: Theme, Lang & Hamburger Menu -->
+      <div class="flex items-center space-x-2">
+        <!-- Dark Mode Toggle -->
+        <button id="themeToggleBtn" onclick="toggleDarkMode()" class="w-9 h-9 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white/70 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-700 transition-all duration-200 flex items-center justify-center text-slate-700 dark:text-slate-200 shadow-xs active:scale-95" title="Dark / Light Mode">
+          <i id="themeToggleIcon" class="fa-solid fa-moon text-sm text-rose-600 dark:text-amber-400 transition-transform duration-300"></i>
+        </button>
+
+        <!-- Global Language Selector Button -->
+        <button id="langToggleBtn" onclick="toggleLanguage()" class="px-3 py-1.5 text-xs font-bold rounded-xl border border-rose-200/80 dark:border-rose-900/80 bg-rose-50/70 dark:bg-rose-950/40 hover:bg-rose-100/80 dark:hover:bg-rose-900/60 transition-all duration-200 text-rose-700 dark:text-rose-300 flex items-center gap-1.5 shadow-xs active:scale-95" title="Badili Lugha / Switch Language">
+          <i class="fa-solid fa-language text-sm text-rose-600 dark:text-rose-400"></i>
+          <span id="currentLangLabel">SW</span>
+        </button>
+
+        <!-- Hamburger Menu Button -->
+        <button onclick="toggleSideMenu(true)" class="w-10 h-10 rounded-xl bg-white/70 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-700 border border-slate-200/80 dark:border-slate-800 text-slate-800 dark:text-slate-100 flex items-center justify-center transition-all duration-200 shadow-xs active:scale-95" aria-label="Open Menu">
+          <i class="fa-solid fa-bars text-lg text-rose-600 dark:text-rose-400"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ================= HAMBURGER SLIDING DRAWER (iOS Sheet / Menu) ================= -->
+  <div id="sideMenuOverlay" onclick="toggleSideMenu(false)" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 transition-opacity opacity-0 pointer-events-none duration-300"></div>
+  <aside id="sideMenuDrawer" class="fixed top-0 right-0 h-full w-80 max-w-[85vw] ios-glass-drawer border-l border-white/40 dark:border-white/10 z-50 shadow-2xl transform translate-x-full transition-transform duration-300 ease-in-out flex flex-col">
+    <!-- Drawer Header -->
+    <div class="p-5 border-b border-slate-200/60 dark:border-slate-800/60 flex items-center justify-between">
+      <div class="flex items-center space-x-2.5">
+        <div class="w-8 h-8 rounded-xl bg-gradient-ios text-white flex items-center justify-center shadow-xs">
+          <i class="fa-solid fa-sliders text-sm"></i>
+        </div>
+        <span data-i18n="drawerTitle" class="font-bold text-slate-900 dark:text-white">Zana na Vipengele</span>
+      </div>
+      <button onclick="toggleSideMenu(false)" class="w-8 h-8 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 flex items-center justify-center hover:bg-slate-100/80 dark:hover:bg-slate-800/80 transition-all duration-200 active:scale-95">
+        <i class="fa-solid fa-xmark text-lg"></i>
+      </button>
+    </div>
+
+    <!-- Drawer Content -->
+    <div class="p-4 flex-1 overflow-y-auto space-y-4">
+      <div>
+        <span data-i18n="drawerSubtitle" class="text-[11px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 px-3">Zana Kuu za Mafaili</span>
+        <div class="mt-2 space-y-1">
+          <button onclick="selectDrawerTool('pdfToWord')" class="w-full text-left px-3 py-2.5 rounded-2xl hover:bg-rose-50/80 dark:hover:bg-rose-950/40 flex items-center space-x-3 transition-all duration-200 text-sm group">
+            <span class="w-9 h-9 rounded-xl bg-rose-100 dark:bg-rose-950/80 text-rose-600 dark:text-rose-400 flex items-center justify-center text-sm shadow-xs group-hover:scale-105 transition-transform"><i class="fa-solid fa-file-word"></i></span>
+            <div>
+              <div data-i18n="toolPdfToWord" class="font-semibold text-slate-800 dark:text-slate-100">PDF kuwa Word</div>
+              <div data-i18n="toolPdfToWordDesc" class="text-[11px] text-slate-400">Badili PDF kuwa faili ya .docx</div>
+            </div>
+          </button>
+          <button onclick="selectDrawerTool('compress')" class="w-full text-left px-3 py-2.5 rounded-2xl hover:bg-rose-50/80 dark:hover:bg-rose-950/40 flex items-center space-x-3 transition-all duration-200 text-sm group">
+            <span class="w-9 h-9 rounded-xl bg-purple-100 dark:bg-purple-950/80 text-purple-600 dark:text-purple-400 flex items-center justify-center text-sm shadow-xs group-hover:scale-105 transition-transform"><i class="fa-solid fa-file-zipper"></i></span>
+            <div>
+              <div data-i18n="toolCompress" class="font-semibold text-slate-800 dark:text-slate-100">Punguza Ukubwa (Compress)</div>
+              <div data-i18n="toolCompressDesc" class="text-[11px] text-slate-400">Bana picha na PDF hadi 85%</div>
+            </div>
+          </button>
+          <button onclick="selectDrawerTool('imagesToPdf')" class="w-full text-left px-3 py-2.5 rounded-2xl hover:bg-rose-50/80 dark:hover:bg-rose-950/40 flex items-center space-x-3 transition-all duration-200 text-sm group">
+            <span class="w-9 h-9 rounded-xl bg-rose-100 dark:bg-rose-950/80 text-rose-600 dark:text-rose-400 flex items-center justify-center text-sm shadow-xs group-hover:scale-105 transition-transform"><i class="fa-solid fa-images"></i></span>
+            <div>
+              <div data-i18n="toolImagesToPdf" class="font-semibold text-slate-800 dark:text-slate-100">Picha kuwa PDF</div>
+              <div data-i18n="toolImagesToPdfDesc" class="text-[11px] text-slate-400">Unganisha picha kuwa PDF moja</div>
+            </div>
+          </button>
+          <button onclick="selectDrawerTool('textToImage')" class="w-full text-left px-3 py-2.5 rounded-2xl hover:bg-rose-50/80 dark:hover:bg-rose-950/40 flex items-center space-x-3 transition-all duration-200 text-sm group">
+            <span class="w-9 h-9 rounded-xl bg-fuchsia-100 dark:bg-fuchsia-950/80 text-fuchsia-600 dark:text-fuchsia-400 flex items-center justify-center text-sm shadow-xs group-hover:scale-105 transition-transform"><i class="fa-solid fa-font"></i></span>
+            <div>
+              <div data-i18n="toolTextToImage" class="font-semibold text-slate-800 dark:text-slate-100">Maandishi kuwa Picha</div>
+              <div data-i18n="toolTextToImageDesc" class="text-[11px] text-slate-400">Tengeneza kadi au picha kutoka maandishi</div>
+            </div>
+          </button>
+          <button onclick="selectDrawerTool('editPdf')" class="w-full text-left px-3 py-2.5 rounded-2xl hover:bg-rose-50/80 dark:hover:bg-rose-950/40 flex items-center space-x-3 transition-all duration-200 text-sm group">
+            <span class="w-9 h-9 rounded-xl bg-purple-100 dark:bg-purple-950/80 text-purple-600 dark:text-purple-400 flex items-center justify-center text-sm shadow-xs group-hover:scale-105 transition-transform"><i class="fa-solid fa-pen-ruler"></i></span>
+            <div>
+              <div data-i18n="toolEditPdf" class="font-semibold text-slate-800 dark:text-slate-100">Hariri Mafaili ya PDF</div>
+              <div data-i18n="toolEditPdfDesc" class="text-[11px] text-slate-400">Zungusha kurasa, unganisha & rekebisha</div>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <div class="pt-2 border-t border-slate-200/60 dark:border-slate-800/60">
+        <span data-i18n="drawerNavTransactions" class="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3">Urambazaji wa Haraka</span>
+        <div class="mt-2 space-y-1">
+          <button onclick="switchNavTab('transactions'); toggleSideMenu(false);" class="w-full text-left px-3 py-2 rounded-xl hover:bg-rose-50/80 dark:hover:bg-rose-950/40 text-xs font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2.5 transition">
+            <i class="fa-solid fa-clock-rotate-left text-rose-500"></i> <span data-i18n="navTransactions">Kumbukumbu ya Mafaili (History)</span>
+          </button>
+          <button onclick="switchNavTab('payments'); toggleSideMenu(false);" class="w-full text-left px-3 py-2 rounded-xl hover:bg-rose-50/80 dark:hover:bg-rose-950/40 text-xs font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2.5 transition">
+            <i class="fa-solid fa-credit-card text-purple-500"></i> <span data-i18n="navPayments">Malipo & Vocha (Payments)</span>
+          </button>
+          <button onclick="switchNavTab('help'); toggleSideMenu(false);" class="w-full text-left px-3 py-2 rounded-xl hover:bg-rose-50/80 dark:hover:bg-rose-950/40 text-xs font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2.5 transition">
+            <i class="fa-solid fa-circle-question text-rose-500"></i> <span data-i18n="navHelp">Msaada & Maswali (Help / FAQ)</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ================= MAIN CONTAINER ================= -->
+  <main class="flex-1 w-full max-w-4xl mx-auto px-4 py-5">
+
+    <!-- ========== TAB VIEW 1: HOME (CONVERTER DASHBOARD) ========== -->
+    <div id="view-home" class="nav-view animate-tab-switch">
+      <!-- Hero Banner -->
+      <section class="text-center py-4 sm:py-6">
+        <div class="inline-flex items-center gap-2 bg-gradient-to-r from-rose-500/10 via-purple-500/15 to-red-500/10 text-rose-700 dark:text-rose-300 text-xs font-semibold px-3.5 py-1 rounded-full mb-2.5 border border-rose-200/60 dark:border-rose-800/60 shadow-xs">
+          <i class="fa-solid fa-bolt text-rose-500"></i>
+          <span data-i18n="heroBadge">Haraka, Salama na Bila Kujiandikisha</span>
+        </div>
+        <h1 class="text-2xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
+          <span data-i18n="heroTitle1">Badili na Punguza Ukubwa wa</span> <span class="text-gradient-ios" data-i18n="heroTitle2">Mafaili Yako</span>
+        </h1>
+        <p data-i18n="heroSubtitle" class="text-slate-600 dark:text-slate-300 text-xs sm:text-sm mt-2 max-w-xl mx-auto font-normal">
+          Chombo cha kisasa cha kubadili PDF kuwa Word, kubana faili bila kupoteza ubora, na kuunganisha picha kuwa PDF.
+        </p>
+
+        <!-- Tool Navigation Bar (iOS Segmented Control Style) -->
+        <div class="mt-6 flex flex-wrap justify-center gap-1.5 p-1.5 ios-glass-card rounded-2xl max-w-2xl mx-auto transition-all duration-300">
+          <button onclick="switchTab('pdfToWord')" id="tabBtn-pdfToWord" class="tab-btn flex-1 min-w-[100px] flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-semibold transition-all duration-200 bg-gradient-ios text-white shadow-md shadow-rose-900/25 active:scale-95">
+            <i class="fa-solid fa-file-word"></i>
+            <span data-i18n="tabPdfToWord">PDF kuwa Word</span>
+          </button>
+          <button onclick="switchTab('compress')" id="tabBtn-compress" class="tab-btn flex-1 min-w-[100px] flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-semibold transition-all duration-200 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-800/60 active:scale-95">
+            <i class="fa-solid fa-file-zipper"></i>
+            <span data-i18n="tabCompress">Punguza Ukubwa</span>
+          </button>
+          <button onclick="switchTab('imagesToPdf')" id="tabBtn-imagesToPdf" class="tab-btn flex-1 min-w-[100px] flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-semibold transition-all duration-200 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-800/60 active:scale-95">
+            <i class="fa-solid fa-images"></i>
+            <span data-i18n="tabImagesToPdf">Picha kuwa PDF</span>
+          </button>
+          <button onclick="switchTab('textToImage')" id="tabBtn-textToImage" class="tab-btn flex-1 min-w-[100px] flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-semibold transition-all duration-200 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-800/60 active:scale-95">
+            <i class="fa-solid fa-font"></i>
+            <span data-i18n="tabTextToImage">Text to Image</span>
+          </button>
+          <button onclick="switchTab('editPdf')" id="tabBtn-editPdf" class="tab-btn flex-1 min-w-[90px] flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-semibold transition-all duration-200 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-800/60 active:scale-95">
+            <i class="fa-solid fa-pen-ruler"></i>
+            <span data-i18n="tabEditPdf">Hariri PDF</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- TOOL 1: PDF TO WORD -->
+      <section id="panel-pdfToWord" class="tool-panel animate-tab-switch">
+        <div class="ios-glass-card rounded-3xl p-5 sm:p-7 transition-all duration-300">
+          <div class="mb-4">
+            <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <span class="p-2 rounded-xl bg-rose-100/80 dark:bg-rose-950/70 text-rose-600 dark:text-rose-300 text-sm shadow-xs"><i class="fa-solid fa-file-lines"></i></span>
+              <span data-i18n="p2wTitle">Badili PDF kuwa Faili ya Word (.docx)</span>
+            </h2>
+            <p data-i18n="p2wDesc" class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Inachambua maandishi na muundo wa PDF na kukupa faili ya Word unayoweza kuihariri.
+            </p>
+          </div>
+
+          <label for="pdfInput" id="dropZonePdf" onclick="handleDropZoneClick(event, 'pdfInput')" class="border-2 border-dashed border-rose-200 dark:border-rose-900/60 hover:border-rose-500 dark:hover:border-rose-400 bg-white/40 dark:bg-rose-950/20 hover:bg-rose-50/40 dark:hover:bg-rose-950/40 rounded-3xl p-8 sm:p-10 text-center cursor-pointer transition-all duration-300 flex flex-col items-center justify-center group active:scale-[0.99] select-none">
+            <input type="file" id="pdfInput" accept="application/pdf,.pdf" class="sr-only" onchange="handleFileSelected(event, 'pdfToWord')">
+            <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-red-600 via-rose-600 to-purple-700 text-white flex items-center justify-center text-2xl mb-3 shadow-lg shadow-rose-900/30 group-hover:scale-110 transition-transform duration-300 pointer-events-none">
+              <i class="fa-solid fa-cloud-arrow-up"></i>
+            </div>
+            <h3 data-i18n="p2wDropTitle" class="text-sm font-bold text-slate-800 dark:text-slate-200 pointer-events-none">Weka faili ya PDF hapa</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 pointer-events-none"><span data-i18n="p2wDropOr">au</span> <span data-i18n="p2wDropClick" class="text-rose-600 dark:text-rose-400 font-semibold underline">bonyeza hapa kuchagua faili</span></p>
+            <span data-i18n="p2wDropLimit" class="text-[10px] text-rose-700 dark:text-rose-300 mt-2 bg-rose-50/80 dark:bg-rose-950/60 border border-rose-200/50 dark:border-rose-800/50 px-2.5 py-0.5 rounded-full font-medium pointer-events-none">PDF hadi 50 MB</span>
+          </label>
+
+          <div id="selectedPdfCard" class="hidden mt-4 p-4 rounded-2xl ios-glass-card border border-rose-200/60 dark:border-rose-900/50 animate-tab-switch">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-3 truncate">
+                <div class="w-10 h-10 rounded-xl bg-rose-100/90 dark:bg-rose-950/70 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 shadow-xs">
+                  <i class="fa-solid fa-file-pdf text-lg"></i>
+                </div>
+                <div class="truncate">
+                  <div id="pdfFileName" class="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">document.pdf</div>
+                  <div id="pdfFileSize" class="text-[11px] text-slate-500 dark:text-slate-400">1.2 MB</div>
+                </div>
+              </div>
+              <button onclick="removeSelectedFile('pdfToWord')" class="p-2 text-slate-400 hover:text-red-500 rounded-xl hover:bg-red-50/80 dark:hover:bg-red-950/40 transition-all active:scale-90"><i class="fa-solid fa-trash-can"></i></button>
+            </div>
+            <div class="mt-3 flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-slate-200/60 dark:border-slate-800/60">
+              <div class="text-xs text-rose-600 dark:text-rose-400 font-semibold flex items-center gap-1.5">
+                <i class="fa-solid fa-circle-check text-rose-600 dark:text-rose-400"></i> <span data-i18n="p2wReadyBadge">Tayari kubadilishwa</span>
+              </div>
+              <button onclick="processConversion('pdfToWord')" class="w-full sm:w-auto px-6 py-2.5 rounded-2xl bg-gradient-ios text-white font-semibold text-xs shadow-md shadow-rose-900/25 hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 active:scale-95">
+                <i class="fa-solid fa-arrows-rotate"></i> <span data-i18n="p2wBtnConvert">Badili kuwa Word Sasa</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TOOL 2: COMPRESS -->
+      <section id="panel-compress" class="tool-panel hidden animate-tab-switch">
+        <div class="ios-glass-card rounded-3xl p-5 sm:p-7 transition-all duration-300">
+          <div class="mb-4">
+            <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <span class="p-2 rounded-xl bg-purple-100/80 dark:bg-purple-950/70 text-purple-600 dark:text-purple-300 text-sm shadow-xs"><i class="fa-solid fa-compress"></i></span>
+              <span data-i18n="compTitle">Punguza Ukubwa wa Picha (JPG/PNG) & PDF</span>
+            </h2>
+            <p data-i18n="compDesc" class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Punguza megabytes za faili hadi 85% bila kuharibu ubora.</p>
+          </div>
+
+          <label for="compressInput" id="dropZoneCompress" onclick="handleDropZoneClick(event, 'compressInput')" class="border-2 border-dashed border-rose-200 dark:border-rose-900/60 hover:border-rose-500 dark:hover:border-rose-400 bg-white/40 dark:bg-rose-950/20 hover:bg-rose-50/40 dark:hover:bg-rose-950/40 rounded-3xl p-8 sm:p-10 text-center cursor-pointer transition-all duration-300 flex flex-col items-center justify-center group active:scale-[0.99] select-none">
+            <input type="file" id="compressInput" accept="image/jpeg,image/png,image/webp,application/pdf,.jpg,.jpeg,.png,.webp,.pdf" class="sr-only" onchange="handleFileSelected(event, 'compress')">
+            <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-purple-700 via-rose-600 to-red-600 text-white flex items-center justify-center text-2xl mb-3 shadow-lg shadow-purple-900/30 group-hover:scale-110 transition-transform duration-300 pointer-events-none">
+              <i class="fa-solid fa-file-zipper"></i>
+            </div>
+            <h3 data-i18n="compDropTitle" class="text-sm font-bold text-slate-800 dark:text-slate-200 pointer-events-none">Weka Picha (JPG/PNG) au Faili ya PDF hapa</h3>
+            <p data-i18n="compDropClick" class="text-xs text-slate-500 dark:text-slate-400 mt-1 pointer-events-none">au bonyeza hapa kuchagua faili</p>
+          </label>
+
+          <div id="selectedCompressCard" class="hidden mt-4 p-4 sm:p-5 rounded-2xl ios-glass-card border border-rose-200/60 dark:border-rose-900/50 animate-tab-switch">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-3 truncate">
+                <div id="compressIconBox" class="w-10 h-10 rounded-xl bg-purple-100/90 dark:bg-purple-950/70 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 shadow-xs">
+                  <i class="fa-solid fa-image text-lg"></i>
+                </div>
+                <div class="truncate">
+                  <div id="compressFileName" class="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">photo.jpg</div>
+                  <div id="compressFileSize" class="text-[11px] text-slate-500 dark:text-slate-400">3.4 MB</div>
+                </div>
+              </div>
+              <button onclick="removeSelectedFile('compress')" class="p-2 text-slate-400 hover:text-red-500 rounded-xl hover:bg-red-50/80 dark:hover:bg-red-950/40 transition-all active:scale-90"><i class="fa-solid fa-trash-can"></i></button>
+            </div>
+
+            <!-- Controls -->
+            <div class="mt-4 pt-3 border-t border-slate-200/60 dark:border-slate-800/60 space-y-3.5">
+              <div>
+                <div class="flex items-center justify-between text-xs mb-1.5 font-medium text-slate-700 dark:text-slate-300">
+                  <span data-i18n="compLevelLabel">Kiwango cha Kupunguza:</span>
+                  <span id="compressStrengthLabel" class="font-bold text-rose-600 dark:text-rose-400">Kiwango Kizuri (70%)</span>
+                </div>
+                <input type="range" id="compressSlider" min="20" max="90" value="70" step="5" oninput="updateCompressSliderLabel(this.value); updateEstimatedSize();" class="w-full accent-rose-600 h-2 bg-slate-200/80 dark:bg-slate-700/80 rounded-lg cursor-pointer transition">
+              </div>
+
+              <!-- Estimated Size Card (iOS Glass Banner) -->
+              <div id="estimatedSizeCard" class="p-3.5 rounded-2xl bg-gradient-to-r from-rose-500/10 via-purple-500/10 to-red-500/10 border border-rose-200/70 dark:border-rose-900/60 transition-all duration-300">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+                    <i class="fa-solid fa-calculator text-rose-600 dark:text-rose-400"></i> <span data-i18n="compEstAfter">Kadirio Baada ya Kubana:</span>
+                  </span>
+                  <span id="estSavingsBadge" class="bg-gradient-ios text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full shadow-xs">-65% Inapungua</span>
+                </div>
+                <div class="flex items-center justify-between bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-xl p-3 border border-rose-100/60 dark:border-slate-800 text-xs">
+                  <div>
+                    <span data-i18n="compEstOriginal" class="text-[10px] text-slate-400 block font-medium">Ukubwa Halisi:</span>
+                    <span id="estBeforeSizeLabel" class="font-bold text-slate-700 dark:text-slate-200">3.40 MB</span>
+                  </div>
+                  <div class="flex items-center justify-center w-7 h-7 rounded-full bg-rose-50 dark:bg-rose-950/70 text-rose-600 dark:text-rose-400">
+                    <i class="fa-solid fa-arrow-right text-xs"></i>
+                  </div>
+                  <div class="text-right">
+                    <span data-i18n="compEstAfterLabel" class="text-[10px] text-rose-600 dark:text-rose-400 font-bold block">Kadirio Baada:</span>
+                    <span id="estAfterSizeLabel" class="font-black text-rose-600 dark:text-rose-400 text-sm">~1.19 MB</span>
+                  </div>
+                </div>
+              </div>
+
+              <button onclick="processConversion('compress')" id="btnProcessCompress" class="w-full py-2.5 rounded-2xl bg-gradient-ios hover:opacity-95 text-white font-semibold text-xs transition-all duration-200 shadow-md shadow-rose-900/25 flex items-center justify-center gap-2 active:scale-95">
+                <i class="fa-solid fa-gauge-high"></i> <span data-i18n="compBtnStart">Bana Ukubwa Sasa</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TOOL 3: IMAGES TO PDF -->
+      <section id="panel-imagesToPdf" class="tool-panel hidden animate-tab-switch">
+        <div class="ios-glass-card rounded-3xl p-5 sm:p-7 transition-all duration-300">
+          <div class="mb-4">
+            <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <span class="p-2 rounded-xl bg-rose-100/80 dark:bg-rose-950/70 text-rose-600 dark:text-rose-300 text-sm shadow-xs"><i class="fa-solid fa-file-pdf"></i></span>
+              <span data-i18n="i2pTitle">Unganisha Picha Nyingi Kuwa PDF Moja</span>
+            </h2>
+            <p data-i18n="i2pDesc" class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Weka picha nyingi na uzigeuze kuwa faili moja ya PDF ya A4.</p>
+          </div>
+
+          <label for="multiImagesInput" id="dropZoneImages" onclick="handleDropZoneClick(event, 'multiImagesInput')" class="border-2 border-dashed border-rose-200 dark:border-rose-900/60 hover:border-rose-500 dark:hover:border-rose-400 bg-white/40 dark:bg-rose-950/20 hover:bg-rose-50/40 dark:hover:bg-rose-950/40 rounded-3xl p-8 sm:p-10 text-center cursor-pointer transition-all duration-300 flex flex-col items-center justify-center group active:scale-[0.99] select-none">
+            <input type="file" id="multiImagesInput" accept="image/png,image/jpeg,image/webp,image/*,.png,.jpg,.jpeg,.webp" multiple class="sr-only" onchange="handleFileSelected(event, 'imagesToPdf')">
+            <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-rose-700 via-red-600 to-purple-800 text-white flex items-center justify-center text-2xl mb-3 shadow-lg shadow-rose-900/30 group-hover:scale-110 transition-transform duration-300 pointer-events-none">
+              <i class="fa-solid fa-layer-group"></i>
+            </div>
+            <h3 data-i18n="i2pDropTitle" class="text-sm font-bold text-slate-800 dark:text-slate-200 pointer-events-none">Weka Picha zako hapa (Chagua nyingi kwa mara moja)</h3>
+            <p data-i18n="i2pDropClick" class="text-xs text-slate-500 dark:text-slate-400 mt-1 pointer-events-none">au bonyeza hapa kuchagua picha</p>
+          </label>
+
+          <div id="selectedImagesSection" class="hidden mt-4 animate-tab-switch">
+            <div class="flex items-center justify-between mb-2">
+              <span id="imageCountLabel" class="text-xs font-bold text-slate-700 dark:text-slate-300">0 picha zilizochaguliwa</span>
+              <button onclick="document.getElementById('multiImagesInput').click()" data-i18n="i2pAddMore" class="text-xs text-rose-600 dark:text-rose-400 font-bold hover:underline transition">+ Ongeza Picha</button>
+            </div>
+            <div id="imagesThumbnailGrid" class="grid grid-cols-3 sm:grid-cols-5 gap-2.5 max-h-56 overflow-y-auto p-1"></div>
+            <button onclick="processConversion('imagesToPdf')" class="mt-4 w-full py-2.5 rounded-2xl bg-gradient-ios hover:opacity-95 text-white font-semibold text-xs transition-all duration-200 shadow-md shadow-rose-900/25 flex items-center justify-center gap-2 active:scale-95">
+              <i class="fa-solid fa-file-pdf"></i> <span data-i18n="i2pBtnGenerate">Tengeneza Faili ya PDF Sasa</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- TOOL 4: TEXT TO IMAGE -->
+      <section id="panel-textToImage" class="tool-panel hidden animate-tab-switch">
+        <div class="ios-glass-card rounded-3xl p-5 sm:p-7 transition-all duration-300">
+          <div class="mb-4">
+            <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <span class="p-2 rounded-xl bg-purple-100/80 dark:bg-purple-950/70 text-purple-600 dark:text-purple-300 text-sm shadow-xs"><i class="fa-solid fa-font"></i></span>
+              <span data-i18n="t2iTitle">Badili Maandishi kuwa Picha (Text-to-Image)</span>
+            </h2>
+            <p data-i18n="t2iDesc" class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Andika ujumbe, tangazo au dokezo na ulibadilishe kuwa picha safi yenye muundo wa kuvutia.</p>
+          </div>
+
+          <div class="space-y-3.5">
+            <div>
+              <label data-i18n="t2iLabelText" class="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">Maandishi Yako:</label>
+              <textarea id="t2iInputText" rows="3" oninput="renderTextToImagePreview()" data-i18n-placeholder="t2iPlaceholder" placeholder="Andika maneno unayotaka hapa..." class="w-full bg-white/70 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-700 rounded-2xl p-3 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-rose-500 transition-all"></textarea>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+              <div>
+                <label data-i18n="t2iLabelTheme" class="text-[11px] font-medium text-slate-600 dark:text-slate-400 block mb-1">Mtindo (Theme):</label>
+                <select id="t2iThemeSelect" onchange="renderTextToImagePreview()" class="w-full bg-white/70 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-700 rounded-xl p-2 text-slate-800 dark:text-slate-200 outline-none transition">
+                  <option value="crimson" data-i18n="t2iThemeCrimson">Crimson & Deep Purple (Default)</option>
+                  <option value="maroon" data-i18n="t2iThemeMaroon">Dark Maroon Velvet</option>
+                  <option value="purple" data-i18n="t2iThemePurple">Royal Purple & Violet</option>
+                  <option value="dark" data-i18n="t2iThemeDark">Midnight Dark (Minimal)</option>
+                  <option value="sunset" data-i18n="t2iThemeSunset">Sunset Amber & Rose</option>
+                </select>
+              </div>
+              <div>
+                <label data-i18n="t2iLabelFontSize" class="text-[11px] font-medium text-slate-600 dark:text-slate-400 block mb-1">Ukubwa wa Herufi:</label>
+                <select id="t2iFontSizeSelect" onchange="renderTextToImagePreview()" class="w-full bg-white/70 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-700 rounded-xl p-2 text-slate-800 dark:text-slate-200 outline-none transition">
+                  <option value="24" data-i18n="t2iSizeMedium">Wastani (24px)</option>
+                  <option value="32" selected data-i18n="t2iSizeLarge">Kubwa (32px)</option>
+                  <option value="42" data-i18n="t2iSizeXLarge">Kubwa Zaidi (42px)</option>
+                </select>
+              </div>
+              <div class="col-span-2 sm:col-span-1">
+                <label data-i18n="t2iLabelRatio" class="text-[11px] font-medium text-slate-600 dark:text-slate-400 block mb-1">Uwiano (Aspect Ratio):</label>
+                <select id="t2iRatioSelect" onchange="renderTextToImagePreview()" class="w-full bg-white/70 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-700 rounded-xl p-2 text-slate-800 dark:text-slate-200 outline-none transition">
+                  <option value="1:1" selected data-i18n="t2iRatioSquare">Square (1:1 - Post)</option>
+                  <option value="16:9" data-i18n="t2iRatioLandscape">Landscape (16:9 - Banner)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Live Canvas Preview -->
+            <div class="mt-3 text-center">
+              <span data-i18n="t2iLivePreview" class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 block mb-1.5">Muhtasari wa Picha (Live Preview):</span>
+              <div class="inline-block border border-rose-200/80 dark:border-rose-900/70 rounded-2xl overflow-hidden shadow-md max-w-full">
+                <canvas id="t2iCanvas" class="max-w-full h-auto block"></canvas>
+              </div>
+            </div>
+
+            <button onclick="downloadTextToImage()" class="w-full py-2.5 rounded-2xl bg-gradient-ios hover:opacity-95 text-white font-semibold text-xs transition-all duration-200 shadow-md shadow-rose-900/25 flex items-center justify-center gap-2 active:scale-95">
+              <i class="fa-solid fa-download"></i> <span data-i18n="t2iBtnDownload">Pakua Picha (Save Image as PNG)</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- TOOL 5: EDIT PDF -->
+      <section id="panel-editPdf" class="tool-panel hidden animate-tab-switch">
+        <div class="ios-glass-card rounded-3xl p-5 sm:p-7 transition-all duration-300">
+          <div class="mb-4">
+            <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <span class="p-2 rounded-xl bg-rose-100/80 dark:bg-rose-950/70 text-rose-600 dark:text-rose-300 text-sm shadow-xs"><i class="fa-solid fa-pen-ruler"></i></span>
+              <span data-i18n="epTitle">Hariri & Zungusha Kurasa za PDF</span>
+            </h2>
+            <p data-i18n="epDesc" class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Zungusha kurasa zilizopinda au unganisha kurasa katika PDF yako.</p>
+          </div>
+
+          <label for="editPdfInput" id="dropZoneEditPdf" onclick="handleDropZoneClick(event, 'editPdfInput')" class="border-2 border-dashed border-rose-200 dark:border-rose-900/60 hover:border-rose-500 dark:hover:border-rose-400 bg-white/40 dark:bg-rose-950/20 hover:bg-rose-50/40 dark:hover:bg-rose-950/40 rounded-3xl p-8 sm:p-10 text-center cursor-pointer transition-all duration-300 flex flex-col items-center justify-center group active:scale-[0.99] select-none">
+            <input type="file" id="editPdfInput" accept="application/pdf,.pdf" class="sr-only" onchange="handleEditPdfSelected(event)">
+            <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-rose-600 via-red-600 to-purple-800 text-white flex items-center justify-center text-2xl mb-3 shadow-lg shadow-rose-900/30 group-hover:scale-110 transition-transform duration-300 pointer-events-none">
+              <i class="fa-solid fa-file-pen"></i>
+            </div>
+            <h3 data-i18n="epDropTitle" class="text-sm font-bold text-slate-800 dark:text-slate-200 pointer-events-none">Chagua faili la PDF kwa ajili ya kuratibu kurasa</h3>
+            <p data-i18n="epDropClick" class="text-xs text-slate-500 dark:text-slate-400 mt-1 pointer-events-none">Zungusha kwa nyuzi 90° clockwise</p>
+          </label>
+
+          <div id="editPdfControls" class="hidden mt-4 space-y-3 animate-tab-switch">
+            <div class="flex items-center justify-between text-xs">
+              <span id="editPdfInfoLabel" class="font-bold text-slate-700 dark:text-slate-300">document.pdf</span>
+              <button onclick="rotateAllPagesInPdf()" class="text-xs text-rose-600 dark:text-rose-400 font-bold flex items-center gap-1.5 hover:underline">
+                <i class="fa-solid fa-rotate-right"></i> <span data-i18n="epBtnRotateAll">Zungusha Kurasa Zote (Rotate 90°)</span>
+              </button>
+            </div>
+            <div id="editPdfPagesContainer" data-i18n="epReadyInfo" class="p-3.5 bg-white/80 dark:bg-slate-900/70 rounded-2xl text-xs text-slate-600 dark:text-slate-300 font-medium border border-rose-200/60 dark:border-slate-800">
+              Faili limekaguliwa na lipo tayari kuhaririwa na kupakuliwa upya.
+            </div>
+            <button onclick="saveEditedPdf()" class="w-full py-2.5 rounded-2xl bg-gradient-ios hover:opacity-95 text-white font-semibold text-xs transition-all duration-200 shadow-md shadow-rose-900/25 flex items-center justify-center gap-2 active:scale-95">
+              <i class="fa-solid fa-floppy-disk"></i> <span data-i18n="epBtnSave">Hifadhi & Pakua PDF Iliyohaririwa</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Ready Download Unlocked Card (iOS Gradient Sheet) -->
+      <div id="downloadReadyCard" class="hidden mt-5 bg-gradient-ios rounded-3xl p-5 text-white shadow-xl shadow-rose-950/40 animate-tab-switch">
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div class="flex items-center space-x-3.5">
+            <div class="w-11 h-11 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-xl shrink-0"><i class="fa-solid fa-check"></i></div>
+            <div>
+              <div data-i18n="downloadReadyBadge" class="text-[10px] text-rose-100 font-bold uppercase tracking-wider">Tayari Kupakuliwa</div>
+              <h4 id="downloadReadyFileName" class="text-sm font-bold truncate max-w-xs">file.docx</h4>
+            </div>
+          </div>
+          <button onclick="triggerActualDownload()" class="w-full sm:w-auto px-6 py-2.5 rounded-2xl bg-white text-rose-950 font-bold text-xs hover:bg-white/90 transition-all duration-200 shadow-md active:scale-95">
+            <i class="fa-solid fa-download mr-1.5 text-rose-600"></i> <span data-i18n="downloadReadyBtn">Pakua Sasa</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ================= SOCIAL SHARING SECTION (Conditional: Revealed AFTER Download) ================= -->
+      <section id="socialShareSection" class="hidden mt-5 ios-glass-card rounded-3xl p-5 sm:p-6 transition-all duration-300 shadow-xl border border-rose-200/70 dark:border-rose-900/60 animate-tab-switch">
+        <div class="flex items-center space-x-3 mb-2">
+          <div class="w-10 h-10 rounded-2xl bg-gradient-ios text-white flex items-center justify-center text-lg shadow-md shadow-rose-900/25 shrink-0">
+            <i class="fa-solid fa-share-nodes"></i>
+          </div>
+          <div>
+            <h3 class="text-sm sm:text-base font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+              <span data-i18n="shareHeaderTitle">Faili Limepakuliwa!</span>
+              <span data-i18n="shareHeaderBadge" class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-400">Mafanikio</span>
+            </h3>
+            <p data-i18n="shareHeaderDesc" class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Washirikishe marafiki au wafanyakazi wenzako watumie zana hii kwa urahisi:
+            </p>
+          </div>
+        </div>
+
+        <!-- Sharing Action Buttons Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mt-4">
+          <!-- 1. WhatsApp Button -->
+          <a id="shareWhatsAppBtn" href="#" target="_blank" rel="noopener noreferrer" class="flex items-center justify-center gap-2.5 px-4 py-3 rounded-2xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 hover:border-emerald-500/50 shadow-xs hover:shadow-md transition-all duration-200 active:scale-95 group">
+            <span class="w-7 h-7 rounded-xl bg-emerald-500 text-white flex items-center justify-center text-sm shadow-xs group-hover:scale-110 transition-transform">
+              <i class="fa-brands fa-whatsapp text-base"></i>
+            </span>
+            <div class="text-left">
+              <div class="text-xs font-bold leading-tight">WhatsApp</div>
+              <div data-i18n="shareWaSub" class="text-[10px] text-emerald-600/80 dark:text-emerald-400/80">Tuma kwenye chat au status</div>
+            </div>
+          </a>
+
+          <!-- 2. Telegram Button -->
+          <a id="shareTelegramBtn" href="#" target="_blank" rel="noopener noreferrer" class="flex items-center justify-center gap-2.5 px-4 py-3 rounded-2xl bg-sky-500/10 hover:bg-sky-500/20 text-sky-700 dark:text-sky-300 border border-sky-500/30 hover:border-sky-500/50 shadow-xs hover:shadow-md transition-all duration-200 active:scale-95 group">
+            <span class="w-7 h-7 rounded-xl bg-sky-500 text-white flex items-center justify-center text-sm shadow-xs group-hover:scale-110 transition-transform">
+              <i class="fa-brands fa-telegram text-base"></i>
+            </span>
+            <div class="text-left">
+              <div class="text-xs font-bold leading-tight">Telegram</div>
+              <div data-i18n="shareTgSub" class="text-[10px] text-sky-600/80 dark:text-sky-400/80">Shiriki kwenye group & channel</div>
+            </div>
+          </a>
+
+          <!-- 3. Copy Link Button -->
+          <button id="copyShareLinkBtn" onclick="copyShareableLink()" class="flex items-center justify-center gap-2.5 px-4 py-3 rounded-2xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-500/30 hover:border-rose-500/50 shadow-xs hover:shadow-md transition-all duration-200 active:scale-95 group">
+            <span id="copyLinkIconBox" class="w-7 h-7 rounded-xl bg-gradient-ios text-white flex items-center justify-center text-sm shadow-xs group-hover:scale-110 transition-transform">
+              <i id="copyLinkIcon" class="fa-solid fa-link text-xs"></i>
+            </span>
+            <div class="text-left">
+              <div id="copyLinkText" data-i18n="shareCopyText" class="text-xs font-bold leading-tight">Nakili Kiungo</div>
+              <div id="copyLinkSubtext" data-i18n="shareCopySub" class="text-[10px] text-rose-600/80 dark:text-rose-400/80">Copy URL to clipboard</div>
+            </div>
+          </button>
+        </div>
+
+        <!-- Optional Direct Web Share (if supported on Android / iOS) -->
+        <div id="nativeShareWrapper" class="mt-3.5 pt-3 border-t border-slate-200/60 dark:border-slate-800/60 flex items-center justify-between text-xs">
+          <span data-i18n="shareNativeLabel" class="text-slate-500 dark:text-slate-400 text-[11px]">Unapendelea zana nyingine?</span>
+          <button onclick="triggerNativeShare()" class="text-rose-600 dark:text-rose-400 font-bold hover:underline flex items-center gap-1.5 transition">
+            <i class="fa-solid fa-arrow-up-from-bracket"></i> <span data-i18n="shareNativeBtn">Shiriki kupitia Apps Nyingine</span>
+          </button>
+        </div>
+      </section>
+    </div>
+
+    <!-- ========== TAB VIEW 2: TRANSACTIONS (HISTORY) ========== -->
+    <div id="view-transactions" class="nav-view hidden animate-tab-switch">
+      <div class="ios-glass-card rounded-3xl p-5 sm:p-7 shadow-sm transition-all duration-300">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h2 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <span class="p-1.5 rounded-xl bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-400"><i class="fa-solid fa-clock-rotate-left"></i></span>
+              <span data-i18n="transTitle">Kumbukumbu ya Mafaili Yaliyobadilishwa</span>
+            </h2>
+            <p data-i18n="transDesc" class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Orodha ya mafaili yako ya hivi karibuni.</p>
+          </div>
+          <button onclick="clearTransactionHistory()" data-i18n="transClearBtn" class="text-xs font-semibold text-rose-500 hover:text-rose-600 hover:underline transition">Futa Yote</button>
+        </div>
+
+        <div id="transactionsListContainer" class="space-y-2.5">
+          <!-- Dynamically populated transaction cards -->
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== TAB VIEW 3: PAYMENTS ========== -->
+    <div id="view-payments" class="nav-view hidden animate-tab-switch">
+      <div class="ios-glass-card rounded-3xl p-5 sm:p-7 shadow-sm transition-all duration-300">
+        <h2 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-1">
+          <span class="p-1.5 rounded-xl bg-purple-100 dark:bg-purple-950 text-purple-600 dark:text-purple-400"><i class="fa-solid fa-credit-card"></i></span>
+          <span data-i18n="payViewTitle">Malipo & Vocha za Huduma</span>
+        </h2>
+        <p data-i18n="payViewDesc" class="text-xs text-slate-500 dark:text-slate-400 mb-4">Lipa ada ndogo ya Tsh 200 kwa kila faili lililokamilika.</p>
+
+        <!-- Pricing Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
+          <div class="p-4 rounded-2xl bg-white/60 dark:bg-slate-900/60 border border-rose-200/60 dark:border-slate-800">
+            <span data-i18n="payCardSingleTitle" class="text-xs text-slate-500 dark:text-slate-400 font-medium">Ada ya Faili Moja:</span>
+            <div class="text-2xl font-black text-rose-600 dark:text-rose-400 mt-0.5">Tsh 200 <span data-i18n="payCardSinglePer" class="text-xs font-normal text-slate-500">/ faili</span></div>
+            <p data-i18n="payCardSingleDesc" class="text-[11px] text-slate-500 mt-1">Hakuna usajili unaohitajika. Unalipia tu unapobadilisha faili.</p>
+          </div>
+          <div class="p-4 rounded-2xl bg-white/60 dark:bg-slate-900/60 border border-purple-200/60 dark:border-slate-800">
+            <span data-i18n="payCardPassTitle" class="text-xs text-slate-500 dark:text-slate-400 font-medium">Kifurushi cha Siku:</span>
+            <div class="text-2xl font-black text-purple-600 dark:text-purple-400 mt-0.5">Tsh 1,500 <span data-i18n="payCardPassPer" class="text-xs font-normal text-slate-500">/ masaa 24</span></div>
+            <p data-i18n="payCardPassDesc" class="text-[11px] text-slate-500 mt-1">Badili na ubane mafaili bila kikomo kwa saa 24 zote.</p>
+          </div>
+        </div>
+
+        <!-- Voucher Code Box -->
+        <div class="p-4 rounded-2xl bg-rose-50/70 dark:bg-rose-950/30 border border-rose-200/70 dark:border-rose-900/60">
+          <span data-i18n="payVoucherTitle" class="text-xs font-bold text-slate-800 dark:text-slate-100 block mb-1.5">Ingiza Vocha au Nambari ya Promo:</span>
+          <div class="flex gap-2">
+            <input type="text" id="voucherInput" data-i18n-placeholder="payVoucherPlaceholder" placeholder="Mfano: FREE-PASS" class="flex-1 bg-white/80 dark:bg-slate-800/80 border border-slate-300/80 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-rose-500 transition">
+            <button onclick="applyVoucherCode()" data-i18n="payVoucherBtn" class="px-5 py-2 rounded-xl bg-gradient-ios text-white font-bold text-xs shadow-md shadow-rose-900/20 active:scale-95 transition">Thibitisha</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== TAB VIEW 4: NOTIFICATIONS ========== -->
+    <div id="view-notifications" class="nav-view hidden animate-tab-switch">
+      <div class="ios-glass-card rounded-3xl p-5 sm:p-7 shadow-sm transition-all duration-300">
+        <h2 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-1">
+          <span class="p-1.5 rounded-xl bg-rose-100 dark:bg-rose-950 text-rose-500"><i class="fa-solid fa-bell"></i></span>
+          <span data-i18n="notifTitle">Taarifa & Maboresho (Notifications)</span>
+        </h2>
+        <p data-i18n="notifDesc" class="text-xs text-slate-500 dark:text-slate-400 mb-4">Habari za huduma na ujumbe wa mfumo.</p>
+
+        <div class="space-y-3 text-xs">
+          <div class="p-4 rounded-2xl bg-white/60 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800 flex items-start space-x-3.5">
+            <div class="w-8 h-8 rounded-xl bg-rose-100 dark:bg-rose-950 text-rose-600 flex items-center justify-center shrink-0 mt-0.5 shadow-xs"><i class="fa-solid fa-sparkles"></i></div>
+            <div>
+              <div data-i18n="notifItem1Title" class="font-bold text-slate-800 dark:text-slate-100">Muonekano Mpya wa Dark Red & Purple</div>
+              <p data-i18n="notifItem1Desc" class="text-slate-500 dark:text-slate-400 mt-0.5">Mfumo sasa unatumia mwonekano wa kisasa wa Crimson Maroon na Deep Purple wenye athari za kioo cha Apple na uhuishaji laini.</p>
+              <span data-i18n="notifToday" class="text-[10px] text-slate-400 mt-1 block">Leo</span>
+            </div>
+          </div>
+          <div class="p-4 rounded-2xl bg-white/60 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800 flex items-start space-x-3.5">
+            <div class="w-8 h-8 rounded-xl bg-purple-100 dark:bg-purple-950 text-purple-600 flex items-center justify-center shrink-0 mt-0.5 shadow-xs"><i class="fa-solid fa-language"></i></div>
+            <div>
+              <div data-i18n="notifItem2Title" class="font-bold text-slate-800 dark:text-slate-100">Lugha Mbili: Kiswahili na Kiingereza</div>
+              <p data-i18n="notifItem2Desc" class="text-slate-500 dark:text-slate-400 mt-0.5">Sasa unaweza kubadili lugha nzima ya mfumo papo hapo kwa kubonyeza kitufe cha lugha juu kulia.</p>
+              <span data-i18n="notifYesterday" class="text-[10px] text-slate-400 mt-1 block">Jana</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== TAB VIEW 5: HELP & FAQ ========== -->
+    <div id="view-help" class="nav-view hidden animate-tab-switch">
+      <div class="ios-glass-card rounded-3xl p-5 sm:p-7 shadow-sm transition-all duration-300">
+        <h2 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-1">
+          <span class="p-1.5 rounded-xl bg-rose-100 dark:bg-rose-950 text-rose-600"><i class="fa-solid fa-circle-question"></i></span>
+          <span data-i18n="helpTitle">Msaada & Maswali Yanayoulizwa Sana</span>
+        </h2>
+        <p data-i18n="helpDesc" class="text-xs text-slate-500 dark:text-slate-400 mb-4">Majibu ya maswali ya kawaida kuhusu matumizi ya huduma.</p>
+
+        <div class="space-y-3 text-xs text-slate-600 dark:text-slate-300">
+          <details class="p-3.5 rounded-2xl bg-white/60 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800 group cursor-pointer transition-all">
+            <summary class="font-bold text-slate-800 dark:text-slate-100 flex items-center justify-between list-none">
+              <span data-i18n="faq1Q">Je, data na mafaili yangu yako salama?</span>
+              <i class="fa-solid fa-chevron-down text-slate-400 group-open:rotate-180 transition-transform duration-200"></i>
+            </summary>
+            <p data-i18n="faq1A" class="mt-2.5 text-slate-500 dark:text-slate-400 leading-relaxed">Ndiyo, usindikaji wote unafanyika moja kwa moja ndani ya kivinjari chako (client-side). Mafaili yako hayatumwi wala kuhifadhiwa kwenye seva yoyote ya nje.</p>
+          </details>
+
+          <details class="p-3.5 rounded-2xl bg-white/60 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800 group cursor-pointer transition-all">
+            <summary class="font-bold text-slate-800 dark:text-slate-100 flex items-center justify-between list-none">
+              <span data-i18n="faq2Q">Je, ninaweza kuitumia bila intaneti?</span>
+              <i class="fa-solid fa-chevron-down text-slate-400 group-open:rotate-180 transition-transform duration-200"></i>
+            </summary>
+            <p data-i18n="faq2A" class="mt-2.5 text-slate-500 dark:text-slate-400 leading-relaxed">Ndiyo, mara tu ukurasa unapofunguka, zana za PDF na picha hufanya kazi moja kwa moja kwenye kifaa chako hata bila mtandao.</p>
+          </details>
+
+          <details class="p-3.5 rounded-2xl bg-white/60 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800 group cursor-pointer transition-all">
+            <summary class="font-bold text-slate-800 dark:text-slate-100 flex items-center justify-between list-none">
+              <span data-i18n="faq3Q">Nifanye nini nikikwama au faili likikataa?</span>
+              <i class="fa-solid fa-chevron-down text-slate-400 group-open:rotate-180 transition-transform duration-200"></i>
+            </summary>
+            <p data-i18n="faq3A" class="mt-2.5 text-slate-500 dark:text-slate-400 leading-relaxed">Hakikisha faili halijafungwa kwa nenosiri na ukubwa wake hauzidi 50 MB. Unaweza pia kubonyeza Demo Mode kufungua mara moja.</p>
+          </details>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ================= FIXED BOTTOM NAVIGATION BAR (iOS Frosted Glass) ================= -->
+  <nav class="fixed bottom-0 left-0 right-0 z-40 ios-glass-nav border-t shadow-2xl px-2 pb-safe transition-all duration-300">
+    <div class="max-w-md mx-auto flex items-center justify-between h-16">
+      <!-- 1. Home -->
+      <button onclick="switchNavTab('home')" id="navBtn-home" class="nav-tab-btn flex-1 flex flex-col items-center justify-center py-1 text-rose-600 dark:text-rose-400 transition-all duration-200 active:scale-95" aria-label="Home">
+        <i class="fa-solid fa-house text-lg"></i>
+        <span data-i18n="navHome" class="text-[10px] font-bold mt-1">Nyumbani</span>
+      </button>
+
+      <!-- 2. Transactions -->
+      <button onclick="switchNavTab('transactions')" id="navBtn-transactions" class="nav-tab-btn flex-1 flex flex-col items-center justify-center py-1 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-all duration-200 active:scale-95" aria-label="Transactions">
+        <i class="fa-solid fa-clock-rotate-left text-lg"></i>
+        <span data-i18n="navTransactions" class="text-[10px] font-medium mt-1">Historia</span>
+      </button>
+
+      <!-- 3. Payments -->
+      <button onclick="switchNavTab('payments')" id="navBtn-payments" class="nav-tab-btn flex-1 flex flex-col items-center justify-center py-1 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-all duration-200 active:scale-95" aria-label="Payments">
+        <i class="fa-solid fa-credit-card text-lg"></i>
+        <span data-i18n="navPayments" class="text-[10px] font-medium mt-1">Malipo</span>
+      </button>
+
+      <!-- 4. Notifications -->
+      <button onclick="switchNavTab('notifications')" id="navBtn-notifications" class="nav-tab-btn flex-1 flex flex-col items-center justify-center py-1 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-all duration-200 relative active:scale-95" aria-label="Notifications">
+        <i class="fa-solid fa-bell text-lg"></i>
+        <span class="absolute top-2 right-1/4 w-2 h-2 rounded-full bg-gradient-ios ring-2 ring-white dark:ring-slate-900"></span>
+        <span data-i18n="navNotifications" class="text-[10px] font-medium mt-1">Taarifa</span>
+      </button>
+
+      <!-- 5. Help -->
+      <button onclick="switchNavTab('help')" id="navBtn-help" class="nav-tab-btn flex-1 flex flex-col items-center justify-center py-1 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-all duration-200 active:scale-95" aria-label="Help">
+        <i class="fa-solid fa-circle-question text-lg"></i>
+        <span data-i18n="navHelp" class="text-[10px] font-medium mt-1">Msaada</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ================= FLOATING TOAST NOTIFICATION (iOS Glass Pill) ================= -->
+  <div id="toastNotification" class="fixed top-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full ios-glass-card text-xs font-semibold text-rose-700 dark:text-rose-300 border border-rose-300/80 dark:border-rose-800/80 shadow-xl pointer-events-none transition-all duration-300 opacity-0 -translate-y-4 flex items-center gap-2">
+    <i class="fa-solid fa-circle-check text-emerald-500 text-sm"></i>
+    <span id="toastMessage">Kiungo kimenakiliwa kikamilifu!</span>
+  </div>
+
+  <!-- ================= SMOOTH FILE PROCESSING MODAL (iOS Frosted Glass) ================= -->
+  <div id="processingModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-md p-4 hidden transition-opacity duration-300">
+    <div class="ios-glass-modal rounded-3xl max-w-sm w-full p-6 sm:p-7 shadow-2xl relative animate-tab-switch border border-rose-500/20 text-center">
+      <!-- Animated Processing Icon with Glow -->
+      <div class="relative w-16 h-16 mx-auto mb-4">
+        <div class="absolute inset-0 rounded-2xl bg-gradient-ios blur-lg opacity-60 animate-pulse"></div>
+        <div class="relative w-16 h-16 rounded-2xl bg-gradient-ios text-white flex items-center justify-center text-2xl shadow-lg shadow-rose-950/40">
+          <i id="processingIcon" class="fa-solid fa-arrows-rotate animate-spin text-xl"></i>
+        </div>
+      </div>
+
+      <h3 id="processingTitle" data-i18n="procModalTitle" class="text-base font-bold text-slate-900 dark:text-white">Inachakata Faili Lako...</h3>
+      <p id="processingStepText" data-i18n="procAnalyzing" class="text-xs text-rose-600 dark:text-rose-400 font-semibold mt-1">Inachambua muundo wa faili...</p>
+      
+      <!-- File badge -->
+      <div class="mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white/60 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800 text-[11px] text-slate-600 dark:text-slate-300 font-medium max-w-full truncate">
+        <i class="fa-solid fa-file text-rose-500"></i>
+        <span id="processingFileName" class="truncate max-w-[200px]">document.pdf</span>
+      </div>
+
+      <!-- Progress Bar Track -->
+      <div class="mt-5 relative text-left">
+        <div class="flex justify-between items-center text-xs mb-1.5 font-bold">
+          <span data-i18n="procStatusLabel" class="text-[11px] text-slate-500 dark:text-slate-400">Maendeleo ya Usindikaji:</span>
+          <span id="processingPercentText" class="text-rose-600 dark:text-rose-400 text-sm font-black">0%</span>
+        </div>
+        <div class="w-full h-3 bg-slate-200/80 dark:bg-slate-800/80 rounded-full overflow-hidden p-0.5 border border-rose-200/50 dark:border-rose-900/50 shadow-inner">
+          <div id="processingProgressBar" class="h-full bg-gradient-ios rounded-full transition-all duration-150 ease-out shadow-sm shadow-rose-600/50 relative overflow-hidden" style="width: 0%;">
+            <!-- Subtle shimmer highlight -->
+            <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent w-full animate-shimmer"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Secure note -->
+      <p class="text-[10px] text-slate-400 dark:text-slate-500 mt-4 pointer-events-none">
+        <i class="fa-solid fa-shield-halved text-[9px] text-emerald-500 mr-1"></i> <span data-i18n="procSecureNote">Usindikaji unafanyika salama ndani ya kifaa chako</span>
+      </p>
+    </div>
+  </div>
+
+  <!-- ================= MICRO-PAYMENT MODAL (iOS Frosted Sheet) ================= -->
+  <div id="paymentModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-md p-4 hidden transition-opacity duration-300">
+    <div class="ios-glass-modal rounded-3xl max-w-sm w-full p-6 shadow-2xl relative animate-tab-switch">
+      <button onclick="closePaymentModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-xl transition active:scale-95"><i class="fa-solid fa-xmark text-lg"></i></button>
+
+      <div id="paymentStepForm">
+        <div class="text-center mb-4">
+          <div class="w-12 h-12 rounded-2xl bg-gradient-ios text-white flex items-center justify-center text-xl mx-auto mb-2 shadow-lg shadow-rose-900/30"><i class="fa-solid fa-receipt"></i></div>
+          <h3 data-i18n="modalPayTitle" class="text-base font-bold text-slate-900 dark:text-white">Thibitisha Malipo ya Tsh 200</h3>
+          <p data-i18n="modalPaySubtitle" class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Ada ya usindikaji wa faili</p>
+        </div>
+
+        <div class="bg-white/60 dark:bg-slate-900/60 rounded-2xl p-3.5 text-xs mb-3.5 space-y-1.5 border border-rose-200/60 dark:border-slate-800">
+          <div class="flex justify-between text-slate-500 dark:text-slate-400"><span data-i18n="modalPayFileName">Jina la faili:</span><span id="payModalFileName" class="font-bold text-slate-800 dark:text-slate-200 truncate max-w-[130px]">file.pdf</span></div>
+          <div class="flex justify-between border-t border-slate-200/60 dark:border-slate-800 pt-1.5 font-bold text-slate-800 dark:text-slate-100"><span data-i18n="modalPayTotalFee">Jumla ya Ada:</span><span class="text-rose-600 dark:text-rose-400 font-black">Tsh 200</span></div>
+        </div>
+
+        <div class="mb-4">
+          <label data-i18n="modalPayPhoneLabel" class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Namba ya Simu (M-Pesa / Tigo / Airtel):</label>
+          <input type="tel" id="mobileNumberInput" value="0754 123 456" class="w-full bg-white/80 dark:bg-slate-800/80 border border-slate-300/80 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-rose-500 transition">
+        </div>
+
+        <button onclick="completePaymentSuccess()" data-i18n="modalPayBtnConfirm" class="w-full py-2.5 rounded-2xl bg-gradient-ios hover:opacity-95 text-white font-bold text-xs shadow-lg shadow-rose-900/25 active:scale-95 transition-all duration-200">
+          Lipa Tsh 200 (Thibitisha Sasa)
+        </button>
+        <button onclick="bypassPaymentForDemo()" data-i18n="modalPayBtnDemo" class="w-full mt-2 text-[11px] text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:underline transition py-1">Njia ya Majaribio (Test Mode - Bure)</button>
+      </div>
+
+      <div id="paymentStepSuccess" class="hidden text-center py-2 animate-tab-switch">
+        <div class="w-14 h-14 rounded-2xl bg-gradient-ios text-white flex items-center justify-center text-2xl mx-auto mb-2.5 shadow-lg shadow-rose-900/30"><i class="fa-solid fa-check"></i></div>
+        <h4 data-i18n="modalPaySuccessTitle" class="text-base font-bold text-slate-900 dark:text-white">Malipo Yamekamilika!</h4>
+        <p data-i18n="modalPaySuccessDesc" class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Faili lako lipo tayari kupakuliwa mara moja.</p>
+        <button onclick="proceedToUnlockedDownload()" data-i18n="modalPayBtnUnlock" class="mt-4 w-full py-2.5 rounded-2xl bg-gradient-ios text-white font-bold text-xs shadow-md shadow-rose-900/25 active:scale-95 transition-all">Pakua Faili Lako</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= JAVASCRIPT LOGIC ================= -->
+  <script>
+    // State
+    let currentNavTab = 'home';
+    let activeToolTab = 'pdfToWord';
+    let currentLanguage = 'sw';
+
+    let state = {
+      pdfFile: null,
+      compressFile: null,
+      compressOriginalSize: 0,
+      compressResultBlob: null,
+      compressImageMeta: null,
+      imagesList: [],
+      editedPdfDoc: null,
+      transactions: [],
+      readyDownload: null
+    };
+
+    // Load saved transactions from localStorage
+    try {
+      const savedTxns = localStorage.getItem('dc_transactions');
+      if (savedTxns) state.transactions = JSON.parse(savedTxns);
+    } catch(e){}
+
+    // Theme Management
+    function initTheme() {
+      const saved = localStorage.getItem('dc_theme');
+      if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+      updateThemeIcon();
+    }
+
+    function toggleDarkMode() {
+      const isDark = document.documentElement.classList.toggle('dark');
+      localStorage.setItem('dc_theme', isDark ? 'dark' : 'light');
+      updateThemeIcon();
+    }
+
+    function updateThemeIcon() {
+      const isDark = document.documentElement.classList.contains('dark');
+      const icon = document.getElementById('themeToggleIcon');
+      if (icon) {
+        icon.className = isDark ? 'fa-solid fa-sun text-sm text-amber-400' : 'fa-solid fa-moon text-sm text-rose-600';
+      }
+    }
+    initTheme();
+
+    // Side Menu (Hamburger Drawer)
+    function toggleSideMenu(open) {
+      const drawer = document.getElementById('sideMenuDrawer');
+      const overlay = document.getElementById('sideMenuOverlay');
+      if (open) {
+        drawer.classList.remove('translate-x-full');
+        overlay.classList.remove('opacity-0', 'pointer-events-none');
+      } else {
+        drawer.classList.add('translate-x-full');
+        overlay.classList.add('opacity-0', 'pointer-events-none');
+      }
+    }
+
+    function selectDrawerTool(toolId) {
+      toggleSideMenu(false);
+      switchNavTab('home');
+      switchTab(toolId);
+    }
+
+    // Bottom Navigation Bar Switching
+    function switchNavTab(tabName) {
+      currentNavTab = tabName;
+      document.querySelectorAll('.nav-view').forEach(v => v.classList.add('hidden'));
+      const targetView = document.getElementById(`view-${tabName}`);
+      if (targetView) {
+        targetView.classList.remove('hidden');
+        targetView.classList.remove('animate-tab-switch');
+        void targetView.offsetWidth; // Trigger reflow for CSS animation
+        targetView.classList.add('animate-tab-switch');
+      }
+
+      // Update active state in bottom nav
+      document.querySelectorAll('.nav-tab-btn').forEach(btn => {
+        btn.classList.remove('text-rose-600', 'dark:text-rose-400');
+        btn.classList.add('text-slate-400', 'dark:text-slate-500');
+        const span = btn.querySelector('span');
+        if (span) span.className = 'text-[10px] font-medium mt-1';
+      });
+
+      const activeBtn = document.getElementById(`navBtn-${tabName}`);
+      if (activeBtn) {
+        activeBtn.classList.remove('text-slate-400', 'dark:text-slate-500');
+        activeBtn.classList.add('text-rose-600', 'dark:text-rose-400');
+        const span = activeBtn.querySelector('span');
+        if (span) span.className = 'text-[10px] font-bold mt-1';
+      }
+
+      if (tabName === 'transactions') renderTransactionsView();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Tool Tabs on Home Screen
+    function switchTab(toolId) {
+      activeToolTab = toolId;
+      document.querySelectorAll('.tool-panel').forEach(p => p.classList.add('hidden'));
+      document.querySelectorAll('.tab-btn').forEach(b => {
+        b.classList.remove('bg-gradient-ios', 'text-white', 'shadow-md', 'shadow-rose-900/25');
+        b.classList.add('text-slate-600', 'dark:text-slate-400');
+      });
+
+      const panel = document.getElementById(`panel-${toolId}`);
+      if (panel) {
+        panel.classList.remove('hidden');
+        panel.classList.remove('animate-tab-switch');
+        void panel.offsetWidth;
+        panel.classList.add('animate-tab-switch');
+      }
+
+      const btn = document.getElementById(`tabBtn-${toolId}`);
+      if (btn) {
+        btn.classList.remove('text-slate-600', 'dark:text-slate-400');
+        btn.classList.add('bg-gradient-ios', 'text-white', 'shadow-md', 'shadow-rose-900/25');
+      }
+
+      if (toolId === 'textToImage') renderTextToImagePreview();
+    }
+
+    // Clean, direct mobile & touch-safe file input trigger
+    function handleDropZoneClick(e, inputId) {
+      if (e.target && e.target.tagName && e.target.tagName.toLowerCase() === 'input') return;
+      const input = document.getElementById(inputId);
+      if (input) {
+        input.value = ''; // Reset so choosing the same file triggers onchange
+        input.click();
+      }
+    }
+
+    function handleFileSelected(e, tool) {
+      if (e.target.files?.length) processFilesInput(e.target.files, tool);
+    }
+
+    // Desktop-only Drag & Drop initialization (completely disabled on mobile touch screens)
+    function initDesktopDragAndDrop() {
+      try {
+        const isDesktop = window.matchMedia && window.matchMedia('(pointer: fine)').matches;
+        if (!isDesktop) return; // Touch devices should only use native picker clicks
+
+        const zones = [
+          { id: 'dropZonePdf', tool: 'pdfToWord' },
+          { id: 'dropZoneCompress', tool: 'compress' },
+          { id: 'dropZoneImages', tool: 'imagesToPdf' },
+          { id: 'dropZoneEditPdf', tool: 'editPdf' }
+        ];
+
+        zones.forEach(({ id, tool }) => {
+          const el = document.getElementById(id);
+          if (!el) return;
+
+          el.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            el.classList.add('drop-active');
+          });
+
+          el.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            el.classList.remove('drop-active');
+          });
+
+          el.addEventListener('drop', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            el.classList.remove('drop-active');
+            if (e.dataTransfer?.files?.length) {
+              if (tool === 'editPdf') {
+                handleEditPdfSelected({ target: { files: e.dataTransfer.files } });
+              } else {
+                processFilesInput(e.dataTransfer.files, tool);
+              }
+            }
+          });
+        });
+      } catch (err) {
+        console.warn('Drag drop init skipped', err);
+      }
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initDesktopDragAndDrop);
+    } else {
+      initDesktopDragAndDrop();
+    }
+
+    // File Processing
+    function processFilesInput(files, tool) {
+      if (tool === 'pdfToWord') {
+        state.pdfFile = files[0];
+        document.getElementById('dropZonePdf').classList.add('hidden');
+        document.getElementById('selectedPdfCard').classList.remove('hidden');
+        document.getElementById('pdfFileName').innerText = files[0].name;
+        document.getElementById('pdfFileSize').innerText = formatFileSize(files[0].size);
+      } else if (tool === 'compress') {
+        const file = files[0];
+        state.compressFile = file;
+        state.compressOriginalSize = file.size;
+        document.getElementById('dropZoneCompress').classList.add('hidden');
+        document.getElementById('selectedCompressCard').classList.remove('hidden');
+        document.getElementById('compressFileName').innerText = file.name;
+        document.getElementById('compressFileSize').innerText = formatFileSize(file.size);
+        updateEstimatedSize();
+      } else if (tool === 'imagesToPdf') {
+        Array.from(files).forEach(file => {
+          if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              state.imagesList.push({ file, name: file.name, dataUrl: e.target.result, size: file.size });
+              renderImagesGrid();
+            };
+            reader.readAsDataURL(file);
+          }
+        });
+      }
+    }
+
+    function removeSelectedFile(tool) {
+      if (tool === 'pdfToWord') {
+        state.pdfFile = null;
+        document.getElementById('selectedPdfCard').classList.add('hidden');
+        document.getElementById('dropZonePdf').classList.remove('hidden');
+      } else if (tool === 'compress') {
+        state.compressFile = null;
+        document.getElementById('selectedCompressCard').classList.add('hidden');
+        document.getElementById('dropZoneCompress').classList.remove('hidden');
+      }
+    }
+
+    function renderImagesGrid() {
+      const grid = document.getElementById('imagesThumbnailGrid');
+      const section = document.getElementById('selectedImagesSection');
+      const dropZone = document.getElementById('dropZoneImages');
+      if (state.imagesList.length === 0) {
+        section.classList.add('hidden');
+        dropZone.classList.remove('hidden');
+        return;
+      }
+      section.classList.remove('hidden');
+      dropZone.classList.add('hidden');
+      const suffix = translations[currentLanguage]?.imagesSelectedSuffix || 'picha zilizochaguliwa';
+      document.getElementById('imageCountLabel').innerText = `${state.imagesList.length} ${suffix}`;
+      grid.innerHTML = '';
+      state.imagesList.forEach((it, idx) => {
+        const d = document.createElement('div');
+        d.className = 'relative rounded-2xl overflow-hidden border border-slate-200/80 dark:border-slate-700 aspect-square shadow-xs group';
+        d.innerHTML = `<img src="${it.dataUrl}" class="w-full h-full object-cover"><button onclick="state.imagesList.splice(${idx},1); renderImagesGrid();" class="absolute top-1.5 right-1.5 w-6 h-6 bg-red-600 text-white rounded-full text-xs flex items-center justify-center shadow-md active:scale-90 transition"><i class="fa-solid fa-times"></i></button>`;
+        grid.appendChild(d);
+      });
+    }
+
+    // Compression estimation
+    function updateCompressSliderLabel(val) {
+      const label = document.getElementById('compressStrengthLabel');
+      if (!label) return;
+      const t = translations[currentLanguage] || {};
+      const strengthName = val < 40 ? (t.compStrengthHigh || 'Kubana Sana') : (val < 75 ? (t.compStrengthGood || 'Kiwango Kizuri') : (t.compStrengthBest || 'Ubora wa Juu'));
+      label.innerText = `${strengthName} (${val}%)`;
+    }
+
+    function updateEstimatedSize() {
+      if (!state.compressFile) return;
+      const original = state.compressOriginalSize;
+      const sliderVal = parseInt(document.getElementById('compressSlider')?.value || '70', 10);
+      const ratio = 0.25 + (1 - (sliderVal / 100)) * 0.45;
+      const estimated = Math.round(original * (1 - ratio));
+      const savedPct = Math.round(((original - estimated) / original) * 100);
+      const t = translations[currentLanguage] || {};
+
+      document.getElementById('estBeforeSizeLabel').innerText = formatFileSize(original);
+      document.getElementById('estAfterSizeLabel').innerText = `~${formatFileSize(estimated)}`;
+      document.getElementById('estSavingsBadge').innerText = `-${savedPct}% ${t.compSavingsSuffix || 'Inapungua'}`;
+    }
+
+    // Smooth File Processing Modal & Progress Bar Runner
+    function showProcessingModal(fileName) {
+      const modal = document.getElementById('processingModal');
+      const nameEl = document.getElementById('processingFileName');
+      const bar = document.getElementById('processingProgressBar');
+      const pct = document.getElementById('processingPercentText');
+      const stepText = document.getElementById('processingStepText');
+      const icon = document.getElementById('processingIcon');
+      const t = translations[currentLanguage] || {};
+      
+      if (nameEl) nameEl.innerText = fileName;
+      if (bar) bar.style.width = '0%';
+      if (pct) pct.innerText = '0%';
+      if (stepText) stepText.innerText = t.procAnalyzing || 'Inachambua muundo wa faili...';
+      if (icon) icon.className = 'fa-solid fa-arrows-rotate animate-spin text-xl';
+      
+      modal?.classList.remove('hidden');
+    }
+
+    function hideProcessingModal() {
+      const modal = document.getElementById('processingModal');
+      modal?.classList.add('hidden');
+    }
+
+    function runProcessingWithProgress(fileName, workPromise, onFinished) {
+      showProcessingModal(fileName);
+      
+      let progress = 0;
+      let isDone = false;
+      let finalResult = null;
+      let hasError = false;
+
+      const stepEl = document.getElementById('processingStepText');
+      const barEl = document.getElementById('processingProgressBar');
+      const pctEl = document.getElementById('processingPercentText');
+      const iconEl = document.getElementById('processingIcon');
+
+      workPromise.then(res => {
+        finalResult = res;
+        isDone = true;
+      }).catch(err => {
+        console.error("Processing error:", err);
+        hasError = true;
+        hideProcessingModal();
+        alert("Hitilafu imetokea wakati wa kuchakata faili. / An error occurred.");
+      });
+
+      const interval = setInterval(() => {
+        if (hasError) {
+          clearInterval(interval);
+          return;
+        }
+
+        const t = translations[currentLanguage] || {};
+
+        if (!isDone) {
+          if (progress < 30) {
+            progress += 3.5;
+            if (stepEl) stepEl.innerText = t.procAnalyzing || 'Inachambua muundo wa faili...';
+          } else if (progress < 68) {
+            progress += 2.2;
+            if (stepEl) stepEl.innerText = t.procConverting || 'Inabadilisha na kuboresha hati...';
+          } else if (progress < 90) {
+            progress += 1.2;
+            if (stepEl) stepEl.innerText = t.procFinalizing || 'Inakamilisha hati ya mwisho...';
+          }
+        } else {
+          progress += 5;
+          if (progress >= 100) {
+            progress = 100;
+            clearInterval(interval);
+
+            if (barEl) barEl.style.width = '100%';
+            if (pctEl) pctEl.innerText = '100%';
+            if (stepEl) stepEl.innerText = t.procComplete || 'Usindikaji Umekamilika!';
+            if (iconEl) iconEl.className = 'fa-solid fa-circle-check text-emerald-400 text-xl';
+
+            setTimeout(() => {
+              hideProcessingModal();
+              onFinished(finalResult);
+            }, 450);
+            return;
+          }
+        }
+
+        if (barEl) barEl.style.width = `${Math.min(99, progress)}%`;
+        if (pctEl) pctEl.innerText = `${Math.round(Math.min(99, progress))}%`;
+      }, 50);
+    }
+
+    // Conversion Process
+    async function processConversion(tool) {
+      if (tool === 'imagesToPdf' && !state.imagesList.length) {
+        return alert(translations[currentLanguage]?.selectImagesFirst || 'Chagua picha kwanza');
+      }
+
+      let targetFileName = 'document.docx';
+      if (tool === 'pdfToWord') {
+        const originalName = state.pdfFile ? state.pdfFile.name.replace(/\.pdf$/i, '') : 'document';
+        targetFileName = `${originalName}.docx`;
+      } else if (tool === 'compress') {
+        targetFileName = state.compressFile ? state.compressFile.name.replace(/(\.[^.]+)$/, '_compressed$1') : 'compressed_file.pdf';
+      } else if (tool === 'imagesToPdf') {
+        targetFileName = 'Combined_Images.pdf';
+      }
+
+      // Asynchronous conversion execution
+      const conversionWork = (async () => {
+        let finalBlob = null;
+        let finalName = targetFileName;
+
+        if (tool === 'pdfToWord') {
+          const originalName = state.pdfFile ? state.pdfFile.name.replace(/\.pdf$/i, '') : 'document';
+          const docContent = `Converted Document: ${originalName}\n\nYaliyomo yamechakatwa kikamilifu kupitia DocuConvert Pro.`;
+          finalBlob = new Blob([docContent], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+          finalName = `${originalName}.docx`;
+        } else if (tool === 'compress') {
+          const file = state.compressFile;
+          const quality = parseInt(document.getElementById('compressSlider')?.value || '70', 10) / 100;
+          if (file && file.type.startsWith('image/')) {
+            const bmp = await createImageBitmap(file);
+            const c = document.createElement('canvas');
+            c.width = bmp.width; c.height = bmp.height;
+            c.getContext('2d').drawImage(bmp, 0, 0);
+            finalBlob = await new Promise(r => c.toBlob(r, 'image/jpeg', quality));
+          } else {
+            finalBlob = file;
+          }
+          finalName = file ? file.name.replace(/(\.[^.]+)$/, '_compressed$1') : 'compressed_file.pdf';
+        } else if (tool === 'imagesToPdf') {
+          const pdfDoc = await PDFLib.PDFDocument.create();
+          for (const it of state.imagesList) {
+            const buf = await it.file.arrayBuffer();
+            const img = it.file.type === 'image/png' ? await pdfDoc.embedPng(buf).catch(()=>pdfDoc.embedJpg(buf)) : await pdfDoc.embedJpg(buf);
+            const page = pdfDoc.addPage([img.width, img.height]);
+            page.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height });
+          }
+          const bytes = await pdfDoc.save();
+          finalBlob = new Blob([bytes], { type: 'application/pdf' });
+          finalName = 'Combined_Images.pdf';
+        }
+        return { blob: finalBlob, fileName: finalName };
+      })();
+
+      runProcessingWithProgress(targetFileName, conversionWork, (result) => {
+        state.readyDownload = result;
+        openPaymentModal(result.fileName);
+      });
+    }
+
+    // TOOL 4: Text-to-Image Implementation
+    function renderTextToImagePreview() {
+      const defaultText = translations[currentLanguage]?.t2iDefaultText || 'Andika ujumbe wako hapa...\nDocuConvert Pro';
+      const text = document.getElementById('t2iInputText')?.value.trim() || defaultText;
+      const theme = document.getElementById('t2iThemeSelect')?.value || 'crimson';
+      const fontSize = parseInt(document.getElementById('t2iFontSizeSelect')?.value || '32', 10);
+      const ratio = document.getElementById('t2iRatioSelect')?.value || '1:1';
+
+      const canvas = document.getElementById('t2iCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+
+      const width = 800;
+      const height = ratio === '16:9' ? 450 : 800;
+      canvas.width = width;
+      canvas.height = height;
+
+      // Background Gradients (Dark Red Crimson/Maroon & Deep Purple)
+      if (theme === 'crimson') {
+        const g = ctx.createLinearGradient(0, 0, width, height);
+        g.addColorStop(0, '#991b1b'); // Dark Crimson
+        g.addColorStop(0.35, '#be123c'); // Rose Maroon
+        g.addColorStop(0.75, '#7e22ce'); // Deep Purple
+        g.addColorStop(1, '#581c87'); // Violet Dark
+        ctx.fillStyle = g;
+      } else if (theme === 'maroon') {
+        const g = ctx.createLinearGradient(0, 0, width, height);
+        g.addColorStop(0, '#4c0519'); // Deep Maroon
+        g.addColorStop(0.5, '#881337'); // Crimson
+        g.addColorStop(1, '#3b0764'); // Dark Purple
+        ctx.fillStyle = g;
+      } else if (theme === 'purple') {
+        const g = ctx.createLinearGradient(0, 0, width, height);
+        g.addColorStop(0, '#581c87'); // Royal Purple
+        g.addColorStop(0.5, '#7e22ce'); // Purple
+        g.addColorStop(1, '#9f1239'); // Maroon Rose
+        ctx.fillStyle = g;
+      } else if (theme === 'dark') {
+        const g = ctx.createLinearGradient(0, 0, width, height);
+        g.addColorStop(0, '#09050e');
+        g.addColorStop(0.5, '#190a1f');
+        g.addColorStop(1, '#240813');
+        ctx.fillStyle = g;
+      } else {
+        // Sunset
+        const g = ctx.createLinearGradient(0, 0, width, height);
+        g.addColorStop(0, '#be123c');
+        g.addColorStop(0.5, '#e11d48');
+        g.addColorStop(1, '#6b21a8');
+        ctx.fillStyle = g;
+      }
+      ctx.fillRect(0, 0, width, height);
+
+      // Card Container (Frosted glass look)
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.14)';
+      ctx.roundRect(40, 40, width - 80, height - 80, 24);
+      ctx.fill();
+
+      // Border highlight
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.22)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Text Drawing
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `bold ${fontSize}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      const words = text.split('\n');
+      const startY = height / 2 - ((words.length - 1) * (fontSize * 1.4)) / 2;
+      words.forEach((line, i) => {
+        ctx.fillText(line, width / 2, startY + (i * fontSize * 1.4));
+      });
+    }
+
+    function downloadTextToImage() {
+      const canvas = document.getElementById('t2iCanvas');
+      if (!canvas) return;
+      canvas.toBlob(blob => {
+        saveTransactionRecord('Text_Card.png', blob.size, 'Text-to-Image');
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'Text_Card.png';
+        a.click();
+        revealSocialSharingSection();
+      });
+    }
+
+    // TOOL 5: Edit PDF
+    async function handleEditPdfSelected(e) {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const buf = await file.arrayBuffer();
+      state.editedPdfDoc = await PDFLib.PDFDocument.load(buf);
+      document.getElementById('dropZoneEditPdf').classList.add('hidden');
+      document.getElementById('editPdfControls').classList.remove('hidden');
+      const pText = translations[currentLanguage]?.pdfPagesSuffix || 'kurasa';
+      document.getElementById('editPdfInfoLabel').innerText = `${file.name} (${state.editedPdfDoc.getPageCount()} ${pText})`;
+    }
+
+    function rotateAllPagesInPdf() {
+      if (!state.editedPdfDoc) return;
+      const pages = state.editedPdfDoc.getPages();
+      pages.forEach(p => {
+        const cur = p.getRotation().angle;
+        p.setRotation(PDFLib.degrees((cur + 90) % 360));
+      });
+      const t = translations[currentLanguage];
+      const msg = t?.pdfRotatedAlert ? t.pdfRotatedAlert(pages.length) : `Kurasa ${pages.length} zimezungushwa kwa nyuzi 90°.`;
+      alert(msg);
+    }
+
+    async function saveEditedPdf() {
+      if (!state.editedPdfDoc) return;
+      const targetFileName = 'Edited_Document.pdf';
+      const saveWork = (async () => {
+        const bytes = await state.editedPdfDoc.save();
+        const blob = new Blob([bytes], { type: 'application/pdf' });
+        return { blob, fileName: targetFileName };
+      })();
+
+      runProcessingWithProgress(targetFileName, saveWork, (result) => {
+        state.readyDownload = result;
+        openPaymentModal(result.fileName);
+      });
+    }
+
+    // Payment & Download
+    function openPaymentModal(fileName) {
+      document.getElementById('payModalFileName').innerText = fileName;
+      document.getElementById('paymentStepForm').classList.remove('hidden');
+      document.getElementById('paymentStepSuccess').classList.add('hidden');
+      document.getElementById('paymentModal').classList.remove('hidden');
+    }
+    function closePaymentModal() { document.getElementById('paymentModal').classList.add('hidden'); }
+    function completePaymentSuccess() {
+      document.getElementById('paymentStepForm').classList.add('hidden');
+      document.getElementById('paymentStepSuccess').classList.remove('hidden');
+    }
+    function bypassPaymentForDemo() {
+      closePaymentModal();
+      proceedToUnlockedDownload();
+    }
+    function proceedToUnlockedDownload() {
+      closePaymentModal();
+      if (state.readyDownload) {
+        document.getElementById('downloadReadyFileName').innerText = state.readyDownload.fileName;
+        document.getElementById('downloadReadyCard').classList.remove('hidden');
+        saveTransactionRecord(state.readyDownload.fileName, state.readyDownload.blob.size, 'Conversion');
+        triggerActualDownload();
+      }
+    }
+    function triggerActualDownload() {
+      if (!state.readyDownload?.blob) return;
+      const blob = state.readyDownload.blob;
+      const name = state.readyDownload.fileName;
+      if (window.AndroidBridge?.saveFileBase64) {
+        const reader = new FileReader();
+        reader.onloadend = () => window.AndroidBridge.saveFileBase64(name, reader.result.split(',')[1], blob.type);
+        reader.readAsDataURL(blob);
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = name; a.click();
+      }
+
+      // Smoothly reveal Social Sharing Section ONLY after download is clicked!
+      revealSocialSharingSection();
+    }
+
+    // ================= SOCIAL SHARING LOGIC =================
+    function getShareData() {
+      const shareUrl = window.location.href.split('#')[0];
+      const shareText = translations[currentLanguage]?.shareShareText || "Habari! Nimebadilisha na kupunguza ukubwa wa mafaili yangu kwa haraka na bila kujiandikisha ukitumia DocuConvert Pro. Jaribu hapa:";
+      return { shareUrl, shareText };
+    }
+
+    function updateSocialShareLinks() {
+      const { shareUrl, shareText } = getShareData();
+      
+      const waBtn = document.getElementById('shareWhatsAppBtn');
+      if (waBtn) {
+        waBtn.href = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText + ' ' + shareUrl)}`;
+      }
+
+      const tgBtn = document.getElementById('shareTelegramBtn');
+      if (tgBtn) {
+        tgBtn.href = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`;
+      }
+    }
+
+    function revealSocialSharingSection() {
+      const shareSection = document.getElementById('socialShareSection');
+      if (!shareSection) return;
+
+      updateSocialShareLinks();
+      shareSection.classList.remove('hidden');
+      shareSection.classList.remove('animate-tab-switch');
+      void shareSection.offsetWidth; // Force reflow for keyframe animation
+      shareSection.classList.add('animate-tab-switch');
+
+      setTimeout(() => {
+        shareSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 150);
+    }
+
+    function copyShareableLink() {
+      const { shareUrl } = getShareData();
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(shareUrl).then(() => {
+          showCopySuccessFeedback();
+        }).catch(() => fallbackCopyLink(shareUrl));
+      } else {
+        fallbackCopyLink(shareUrl);
+      }
+    }
+
+    function fallbackCopyLink(text) {
+      const input = document.createElement('input');
+      input.value = text;
+      document.body.appendChild(input);
+      input.select();
+      try {
+        document.execCommand('copy');
+        showCopySuccessFeedback();
+      } catch(e) {
+        showToast('Tafadhali nakili kiungo hiki: ' + text);
+      }
+      document.body.removeChild(input);
+    }
+
+    function showCopySuccessFeedback() {
+      const copyIcon = document.getElementById('copyLinkIcon');
+      const copyText = document.getElementById('copyLinkText');
+      const copySub = document.getElementById('copyLinkSubtext');
+      const iconBox = document.getElementById('copyLinkIconBox');
+      const t = translations[currentLanguage] || {};
+
+      if (copyIcon && copyText) {
+        copyIcon.className = 'fa-solid fa-check text-xs';
+        iconBox.className = 'w-7 h-7 rounded-xl bg-emerald-500 text-white flex items-center justify-center text-sm shadow-xs transition-colors';
+        copyText.innerText = t.copiedText || 'Imenakiliwa! (Copied)';
+        copyText.classList.add('text-emerald-600', 'dark:text-emerald-400');
+        if (copySub) copySub.innerText = t.copiedSubtext || 'Tayari kusambaza kwa wengine';
+
+        setTimeout(() => {
+          copyIcon.className = 'fa-solid fa-link text-xs';
+          iconBox.className = 'w-7 h-7 rounded-xl bg-gradient-ios text-white flex items-center justify-center text-sm shadow-xs transition-colors';
+          copyText.innerText = t.copyDefaultText || 'Nakili Kiungo';
+          copyText.classList.remove('text-emerald-600', 'dark:text-emerald-400');
+          if (copySub) copySub.innerText = t.copyDefaultSub || 'Copy URL to clipboard';
+        }, 2800);
+      }
+
+      showToast(t.toastCopied || 'Kiungo kimenakiliwa kwenye clipboard yako!');
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toastNotification');
+      const toastMsg = document.getElementById('toastMessage');
+      if (!toast || !toastMsg) return;
+      toastMsg.innerText = msg;
+      toast.classList.remove('opacity-0', '-translate-y-4', 'pointer-events-none');
+      toast.classList.add('opacity-100', 'translate-y-0');
+      setTimeout(() => {
+        toast.classList.remove('opacity-100', 'translate-y-0');
+        toast.classList.add('opacity-0', '-translate-y-4', 'pointer-events-none');
+      }, 3000);
+    }
+
+    function triggerNativeShare() {
+      const { shareUrl, shareText } = getShareData();
+      if (navigator.share) {
+        navigator.share({
+          title: 'DocuConvert Pro',
+          text: shareText,
+          url: shareUrl
+        }).catch(() => {});
+      } else {
+        copyShareableLink();
+      }
+    }
+
+    // Transactions History
+    function saveTransactionRecord(fileName, size, tool) {
+      const record = {
+        id: 'TXN-' + Math.floor(100000 + Math.random() * 900000),
+        name: fileName,
+        size: formatFileSize(size),
+        tool: tool,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+      state.transactions.unshift(record);
+      if (state.transactions.length > 20) state.transactions.pop();
+      try { localStorage.setItem('dc_transactions', JSON.stringify(state.transactions)); } catch(e){}
+    }
+
+    function renderTransactionsView() {
+      const container = document.getElementById('transactionsListContainer');
+      if (!container) return;
+      const t = translations[currentLanguage] || {};
+      if (!state.transactions.length) {
+        container.innerHTML = `<div class="p-6 text-center text-xs text-slate-400">${t.transEmpty || 'Hakuna kumbukumbu ya faili bado. Ubadilishaji unaofanya utaonekana hapa.'}</div>`;
+        return;
+      }
+      container.innerHTML = state.transactions.map(item => `
+        <div class="p-3.5 rounded-2xl bg-white/60 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800 flex items-center justify-between text-xs transition-all hover:bg-white/80 dark:hover:bg-slate-800/80">
+          <div class="truncate mr-2">
+            <div class="font-bold text-slate-800 dark:text-slate-100 truncate">${item.name}</div>
+            <div class="text-[10px] text-slate-400">${item.tool} • ${item.size} • ${item.time}</div>
+          </div>
+          <span class="text-[10px] bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 px-2.5 py-0.5 rounded-full font-bold shadow-xs">${t.transStatusCompleted || 'Imekamilika'}</span>
+        </div>
+      `).join('');
+    }
+
+    function clearTransactionHistory() {
+      state.transactions = [];
+      localStorage.removeItem('dc_transactions');
+      renderTransactionsView();
+    }
+
+    function applyVoucherCode() {
+      const val = document.getElementById('voucherInput')?.value.trim();
+      const t = translations[currentLanguage];
+      if (val) {
+        const msg = t?.voucherAlert ? t.voucherAlert(val) : `Vocha '${val}' imekubaliwa! Umepata punguzo la 100%.`;
+        alert(msg);
+      }
+    }
+
+    // ================= GLOBAL MULTI-LANGUAGE SYSTEM =================
+    const translations = {
+      sw: {
+        badgePro: "Pro Hub",
+        brandSubtitle: "Zana ya kubadili na kusimamia mafaili",
+        drawerTitle: "Zana na Vipengele",
+        drawerSubtitle: "Zana Kuu za Mafaili",
+        toolPdfToWord: "PDF kuwa Word",
+        toolPdfToWordDesc: "Badili PDF kuwa faili ya .docx",
+        toolCompress: "Punguza Ukubwa (Compress)",
+        toolCompressDesc: "Bana picha na PDF hadi 85%",
+        toolImagesToPdf: "Picha kuwa PDF",
+        toolImagesToPdfDesc: "Unganisha picha kuwa PDF moja",
+        toolTextToImage: "Maandishi kuwa Picha",
+        toolTextToImageDesc: "Tengeneza kadi au picha kutoka maandishi",
+        toolEditPdf: "Hariri Mafaili ya PDF",
+        toolEditPdfDesc: "Zungusha kurasa, unganisha & rekebisha",
+        drawerNavTransactions: "Urambazaji wa Haraka",
+        navTransactions: "Historia",
+        navPayments: "Malipo",
+        navHelp: "Msaada",
+        heroBadge: "Haraka, Salama na Bila Kujiandikisha",
+        heroTitle1: "Badili na Punguza Ukubwa wa",
+        heroTitle2: "Mafaili Yako",
+        heroSubtitle: "Chombo cha kisasa cha kubadili PDF kuwa Word, kubana faili bila kupoteza ubora, na kuunganisha picha kuwa PDF.",
+        tabPdfToWord: "PDF kuwa Word",
+        tabCompress: "Punguza Ukubwa",
+        tabImagesToPdf: "Picha kuwa PDF",
+        tabTextToImage: "Text to Image",
+        tabEditPdf: "Hariri PDF",
+        p2wTitle: "Badili PDF kuwa Faili ya Word (.docx)",
+        p2wDesc: "Inachambua maandishi na muundo wa PDF na kukupa faili ya Word unayoweza kuihariri.",
+        p2wDropTitle: "Weka faili ya PDF hapa",
+        p2wDropOr: "au",
+        p2wDropClick: "bonyeza hapa kuchagua faili",
+        p2wDropLimit: "PDF hadi 50 MB",
+        p2wReadyBadge: "Tayari kubadilishwa",
+        p2wBtnConvert: "Badili kuwa Word Sasa",
+        compTitle: "Punguza Ukubwa wa Picha (JPG/PNG) & PDF",
+        compDesc: "Punguza megabytes za faili hadi 85% bila kuharibu ubora.",
+        compDropTitle: "Weka Picha (JPG/PNG) au Faili ya PDF hapa",
+        compDropClick: "au bonyeza hapa kuchagua faili",
+        compLevelLabel: "Kiwango cha Kupunguza:",
+        compEstAfter: "Kadirio Baada ya Kubana:",
+        compEstOriginal: "Ukubwa Halisi:",
+        compEstAfterLabel: "Kadirio Baada:",
+        compBtnStart: "Bana Ukubwa Sasa",
+        i2pTitle: "Unganisha Picha Nyingi Kuwa PDF Moja",
+        i2pDesc: "Weka picha nyingi na uzigeuze kuwa faili moja ya PDF ya A4.",
+        i2pDropTitle: "Weka Picha zako hapa (Chagua nyingi kwa mara moja)",
+        i2pDropClick: "au bonyeza hapa kuchagua picha",
+        i2pAddMore: "+ Ongeza Picha",
+        i2pBtnGenerate: "Tengeneza Faili ya PDF Sasa",
+        t2iTitle: "Badili Maandishi kuwa Picha (Text-to-Image)",
+        t2iDesc: "Andika ujumbe, tangazo au dokezo na ulibadilishe kuwa picha safi yenye muundo wa kuvutia.",
+        t2iLabelText: "Maandishi Yako:",
+        t2iPlaceholder: "Andika maneno unayotaka hapa...",
+        t2iLabelTheme: "Mtindo (Theme):",
+        t2iThemeCrimson: "Crimson & Deep Purple (Kawaida)",
+        t2iThemeMaroon: "Dark Maroon Velvet",
+        t2iThemePurple: "Royal Purple & Violet",
+        t2iThemeDark: "Midnight Dark (Minimal)",
+        t2iThemeSunset: "Sunset Amber & Rose",
+        t2iLabelFontSize: "Ukubwa wa Herufi:",
+        t2iSizeMedium: "Wastani (24px)",
+        t2iSizeLarge: "Kubwa (32px)",
+        t2iSizeXLarge: "Kubwa Zaidi (42px)",
+        t2iLabelRatio: "Uwiano (Aspect Ratio):",
+        t2iRatioSquare: "Square (1:1 - Post)",
+        t2iRatioLandscape: "Landscape (16:9 - Banner)",
+        t2iLivePreview: "Muhtasari wa Picha (Live Preview):",
+        t2iBtnDownload: "Pakua Picha (Save Image as PNG)",
+        epTitle: "Hariri & Zungusha Kurasa za PDF",
+        epDesc: "Zungusha kurasa zilizopinda au unganisha kurasa katika PDF yako.",
+        epDropTitle: "Chagua faili la PDF kwa ajili ya kuratibu kurasa",
+        epDropClick: "Zungusha kwa nyuzi 90° clockwise",
+        epBtnRotateAll: "Zungusha Kurasa Zote (Rotate 90°)",
+        epReadyInfo: "Faili limekaguliwa na lipo tayari kuhaririwa na kupakuliwa upya.",
+        epBtnSave: "Hifadhi & Pakua PDF Iliyohaririwa",
+        downloadReadyBadge: "Tayari Kupakuliwa",
+        downloadReadyBtn: "Pakua Sasa",
+        shareHeaderTitle: "Faili Limepakuliwa!",
+        shareHeaderBadge: "Mafanikio",
+        shareHeaderDesc: "Washirikishe marafiki au wafanyakazi wenzako watumie zana hii kwa urahisi:",
+        shareWaSub: "Tuma kwenye chat au status",
+        shareTgSub: "Shiriki kwenye group & channel",
+        shareCopyText: "Nakili Kiungo",
+        shareCopySub: "Copy URL to clipboard",
+        shareNativeLabel: "Unapendelea zana nyingine?",
+        shareNativeBtn: "Shiriki kupitia Apps Nyingine",
+        transTitle: "Kumbukumbu ya Mafaili Yaliyobadilishwa",
+        transDesc: "Orodha ya mafaili yako ya hivi karibuni.",
+        transClearBtn: "Futa Yote",
+        payViewTitle: "Malipo & Vocha za Huduma",
+        payViewDesc: "Lipa ada ndogo ya Tsh 200 kwa kila faili lililokamilika.",
+        payCardSingleTitle: "Ada ya Faili Moja:",
+        payCardSinglePer: "/ faili",
+        payCardSingleDesc: "Hakuna usajili unaohitajika. Unalipia tu unapobadilisha faili.",
+        payCardPassTitle: "Kifurushi cha Siku:",
+        payCardPassPer: "/ masaa 24",
+        payCardPassDesc: "Badili na ubane mafaili bila kikomo kwa saa 24 zote.",
+        payVoucherTitle: "Ingiza Vocha au Nambari ya Promo:",
+        payVoucherPlaceholder: "Mfano: FREE-PASS",
+        payVoucherBtn: "Thibitisha",
+        notifTitle: "Taarifa & Maboresho (Notifications)",
+        notifDesc: "Habari za huduma na ujumbe wa mfumo.",
+        notifItem1Title: "Muonekano Mpya wa Dark Red & Purple",
+        notifItem1Desc: "Mfumo sasa unatumia mwonekano wa kisasa wa Crimson Maroon na Deep Purple wenye athari za kioo cha Apple na uhuishaji laini.",
+        notifToday: "Leo",
+        notifItem2Title: "Lugha Mbili: Kiswahili na Kiingereza",
+        notifItem2Desc: "Sasa unaweza kubadili lugha nzima ya mfumo papo hapo kwa kubonyeza kitufe cha lugha juu kulia.",
+        notifYesterday: "Jana",
+        helpTitle: "Msaada & Maswali Yanayoulizwa Sana",
+        helpDesc: "Majibu ya maswali ya kawaida kuhusu matumizi ya huduma.",
+        faq1Q: "Je, data na mafaili yangu yako salama?",
+        faq1A: "Ndiyo, usindikaji wote unafanyika moja kwa moja ndani ya kivinjari chako (client-side). Mafaili yako hayatumwi wala kuhifadhiwa kwenye seva yoyote ya nje.",
+        faq2Q: "Je, ninaweza kuitumia bila intaneti?",
+        faq2A: "Ndiyo, mara tu ukurasa unapofunguka, zana za PDF na picha hufanya kazi moja kwa moja kwenye kifaa chako hata bila mtandao.",
+        faq3Q: "Nifanye nini nikikwama au faili likikataa?",
+        faq3A: "Hakikisha faili halijafungwa kwa nenosiri na ukubwa wake hauzidi 50 MB. Unaweza pia kubonyeza Demo Mode kufungua mara moja.",
+        navHome: "Nyumbani",
+        navNotifications: "Taarifa",
+        modalPayTitle: "Thibitisha Malipo ya Tsh 200",
+        modalPaySubtitle: "Ada ya usindikaji wa faili",
+        modalPayFileName: "Jina la faili:",
+        modalPayTotalFee: "Jumla ya Ada:",
+        modalPayPhoneLabel: "Namba ya Simu (M-Pesa / Tigo / Airtel):",
+        modalPayBtnConfirm: "Lipa Tsh 200 (Thibitisha Sasa)",
+        modalPayBtnDemo: "Njia ya Majaribio (Test Mode - Bure)",
+        modalPaySuccessTitle: "Malipo Yamekamilika!",
+        modalPaySuccessDesc: "Faili lako lipo tayari kupakuliwa mara moja.",
+        modalPayBtnUnlock: "Pakua Faili Lako",
+        toastCopied: "Kiungo kimenakiliwa kwenye clipboard yako!",
+        copiedText: "Imenakiliwa! (Copied)",
+        copiedSubtext: "Tayari kusambaza kwa wengine",
+        copyDefaultText: "Nakili Kiungo",
+        copyDefaultSub: "Copy URL to clipboard",
+        transEmpty: "Hakuna kumbukumbu ya faili bado. Ubadilishaji unaofanya utaonekana hapa.",
+        transStatusCompleted: "Imekamilika",
+        compStrengthHigh: "Kubana Sana",
+        compStrengthGood: "Kiwango Kizuri",
+        compStrengthBest: "Ubora wa Juu",
+        compSavingsSuffix: "Inapungua",
+        imagesSelectedSuffix: "picha zilizochaguliwa",
+        pdfPagesSuffix: "kurasa",
+        pdfRotatedAlert: (c) => `Kurasa ${c} zimezungushwa kwa nyuzi 90°.`,
+        shareShareText: "Habari! Nimebadilisha na kupunguza ukubwa wa mafaili yangu kwa haraka na bila kujiandikisha ukitumia DocuConvert Pro. Jaribu hapa:",
+        voucherAlert: (v) => `Vocha '${v}' imekubaliwa! Umepata punguzo la 100%.`,
+        selectImagesFirst: "Chagua picha kwanza",
+        t2iDefaultText: "Andika ujumbe wako hapa...\nDocuConvert Pro",
+        procModalTitle: "Inachakata Faili Lako...",
+        procAnalyzing: "Inachambua muundo wa faili...",
+        procConverting: "Inabadilisha na kuboresha hati...",
+        procFinalizing: "Inakamilisha hati ya mwisho...",
+        procComplete: "Usindikaji Umekamilika!",
+        procStatusLabel: "Maendeleo ya Usindikaji:",
+        procSecureNote: "Usindikaji unafanyika salama ndani ya kifaa chako"
+      },
+      en: {
+        badgePro: "Pro Hub",
+        brandSubtitle: "Tool to convert and manage files",
+        drawerTitle: "Tools & Features",
+        drawerSubtitle: "Core File Tools",
+        toolPdfToWord: "PDF to Word",
+        toolPdfToWordDesc: "Convert PDF to editable .docx document",
+        toolCompress: "Compress Files",
+        toolCompressDesc: "Shrink images and PDFs up to 85%",
+        toolImagesToPdf: "Images to PDF",
+        toolImagesToPdfDesc: "Merge multiple pictures into one PDF",
+        toolTextToImage: "Text to Image",
+        toolTextToImageDesc: "Create quotes or cards from text",
+        toolEditPdf: "Edit & Rotate PDF",
+        toolEditPdfDesc: "Rotate pages, organize & fix orientation",
+        drawerNavTransactions: "Quick Navigation",
+        navTransactions: "History",
+        navPayments: "Payments",
+        navHelp: "Help",
+        heroBadge: "Fast, Secure & No Sign-up Needed",
+        heroTitle1: "Convert & Compress Your",
+        heroTitle2: "Files Instantly",
+        heroSubtitle: "Modern, secure tool to convert PDF to Word, compress files without losing quality, and merge images into PDF.",
+        tabPdfToWord: "PDF to Word",
+        tabCompress: "Compress",
+        tabImagesToPdf: "Images to PDF",
+        tabTextToImage: "Text to Image",
+        tabEditPdf: "Edit PDF",
+        p2wTitle: "Convert PDF to Word Document (.docx)",
+        p2wDesc: "Extracts text and layout from PDF to generate a document you can freely edit.",
+        p2wDropTitle: "Drop your PDF file here",
+        p2wDropOr: "or",
+        p2wDropClick: "click here to browse file",
+        p2wDropLimit: "PDF up to 50 MB",
+        p2wReadyBadge: "Ready for conversion",
+        p2wBtnConvert: "Convert to Word Now",
+        compTitle: "Compress Images (JPG/PNG) & PDF",
+        compDesc: "Reduce file megabytes up to 85% without sacrificing quality.",
+        compDropTitle: "Drop Image (JPG/PNG) or PDF file here",
+        compDropClick: "or click here to browse files",
+        compLevelLabel: "Compression Level:",
+        compEstAfter: "Estimated Output Size:",
+        compEstOriginal: "Original Size:",
+        compEstAfterLabel: "Estimated After:",
+        compBtnStart: "Compress File Now",
+        i2pTitle: "Merge Multiple Images into Single PDF",
+        i2pDesc: "Select multiple photos and bundle them into a single formatted A4 PDF.",
+        i2pDropTitle: "Drop your images here (Select multiple at once)",
+        i2pDropClick: "or click here to browse photos",
+        i2pAddMore: "+ Add More Photos",
+        i2pBtnGenerate: "Generate PDF File Now",
+        t2iTitle: "Convert Text to Image (Text-to-Image)",
+        t2iDesc: "Write quotes, announcements, or notes and turn them into elegant graphics.",
+        t2iLabelText: "Your Text:",
+        t2iPlaceholder: "Type your text or quote here...",
+        t2iLabelTheme: "Style Theme:",
+        t2iThemeCrimson: "Crimson & Deep Purple (Default)",
+        t2iThemeMaroon: "Dark Maroon Velvet",
+        t2iThemePurple: "Royal Purple & Violet",
+        t2iThemeDark: "Midnight Dark (Minimal)",
+        t2iThemeSunset: "Sunset Amber & Rose",
+        t2iLabelFontSize: "Font Size:",
+        t2iSizeMedium: "Medium (24px)",
+        t2iSizeLarge: "Large (32px)",
+        t2iSizeXLarge: "Extra Large (42px)",
+        t2iLabelRatio: "Aspect Ratio:",
+        t2iRatioSquare: "Square (1:1 - Post)",
+        t2iRatioLandscape: "Landscape (16:9 - Banner)",
+        t2iLivePreview: "Live Canvas Preview:",
+        t2iBtnDownload: "Save Image as PNG",
+        epTitle: "Edit & Rotate PDF Pages",
+        epDesc: "Rotate upside-down pages or organize orientation in your PDF.",
+        epDropTitle: "Select a PDF file to rotate or organize pages",
+        epDropClick: "Rotate pages 90° clockwise",
+        epBtnRotateAll: "Rotate All Pages (90° Clockwise)",
+        epReadyInfo: "PDF verified and ready to rotate, adjust, and re-download.",
+        epBtnSave: "Save & Download Edited PDF",
+        downloadReadyBadge: "Ready for Download",
+        downloadReadyBtn: "Download Now",
+        shareHeaderTitle: "File Downloaded Successfully!",
+        shareHeaderBadge: "Success",
+        shareHeaderDesc: "Share this tool with colleagues or friends to make their file conversions easy:",
+        shareWaSub: "Send via chat or status",
+        shareTgSub: "Share in groups & channels",
+        shareCopyText: "Copy Link",
+        shareCopySub: "Copy URL to clipboard",
+        shareNativeLabel: "Prefer another app?",
+        shareNativeBtn: "Share via Other Apps",
+        transTitle: "Converted Files History",
+        transDesc: "List of your recent file conversions.",
+        transClearBtn: "Clear All",
+        payViewTitle: "Payments & Service Vouchers",
+        payViewDesc: "Pay a minimal fee of Tsh 200 per completed document conversion.",
+        payCardSingleTitle: "Single File Fee:",
+        payCardSinglePer: "/ file",
+        payCardSingleDesc: "No subscription required. Pay only when you convert.",
+        payCardPassTitle: "24-Hour Day Pass:",
+        payCardPassPer: "/ 24 hours",
+        payCardPassDesc: "Convert and compress unlimited files for a full 24 hours.",
+        payVoucherTitle: "Enter Voucher or Promo Code:",
+        payVoucherPlaceholder: "Example: FREE-PASS",
+        payVoucherBtn: "Apply Code",
+        notifTitle: "Updates & System Notices",
+        notifDesc: "Service announcements and system messages.",
+        notifItem1Title: "New Dark Red & Deep Purple Theme",
+        notifItem1Desc: "The system now features a sleek Crimson Maroon & Deep Purple aesthetic with iOS frosted glassmorphism.",
+        notifToday: "Today",
+        notifItem2Title: "Bilingual: Swahili & English",
+        notifItem2Desc: "Instantly translate the entire application between Swahili and English using the top header button.",
+        notifYesterday: "Yesterday",
+        helpTitle: "Help & Frequently Asked Questions",
+        helpDesc: "Answers to common questions regarding our tools and privacy.",
+        faq1Q: "Are my files and personal data secure?",
+        faq1A: "Yes, all processing occurs entirely in your browser (client-side). Your files are never sent to or stored on external servers.",
+        faq2Q: "Can I use this without an internet connection?",
+        faq2A: "Yes, once loaded, all client-side PDF and image tools work completely offline on your device.",
+        faq3Q: "What if a file fails to process?",
+        faq3A: "Ensure the file is not password-protected and under 50 MB. You can also use Test Mode to bypass payment.",
+        navHome: "Home",
+        navNotifications: "Notices",
+        modalPayTitle: "Confirm Payment of Tsh 200",
+        modalPaySubtitle: "File processing fee",
+        modalPayFileName: "File Name:",
+        modalPayTotalFee: "Total Fee:",
+        modalPayPhoneLabel: "Mobile Phone Number (M-Pesa / Tigo / Airtel):",
+        modalPayBtnConfirm: "Pay Tsh 200 (Confirm Now)",
+        modalPayBtnDemo: "Test / Free Demo Mode",
+        modalPaySuccessTitle: "Payment Completed!",
+        modalPaySuccessDesc: "Your file is unlocked and ready for instant download.",
+        modalPayBtnUnlock: "Download Your File",
+        toastCopied: "Link copied to your clipboard!",
+        copiedText: "Copied!",
+        copiedSubtext: "Ready to share with others",
+        copyDefaultText: "Copy Link",
+        copyDefaultSub: "Copy URL to clipboard",
+        transEmpty: "No file history yet. Your completed conversions will appear here.",
+        transStatusCompleted: "Completed",
+        compStrengthHigh: "High Compression",
+        compStrengthGood: "Balanced Compression",
+        compStrengthBest: "High Quality",
+        compSavingsSuffix: "Reduction",
+        imagesSelectedSuffix: "images selected",
+        pdfPagesSuffix: "pages",
+        pdfRotatedAlert: (c) => `${c} pages rotated by 90°.`,
+        shareShareText: "Hello! I just converted and compressed my files quickly and without signing up using DocuConvert Pro. Check it out here:",
+        voucherAlert: (v) => `Voucher '${v}' applied! You received a 100% discount.`,
+        selectImagesFirst: "Please select images first",
+        t2iDefaultText: "Type your message here...\nDocuConvert Pro",
+        procModalTitle: "Processing Your File...",
+        procAnalyzing: "Analyzing file structure...",
+        procConverting: "Converting and optimizing document...",
+        procFinalizing: "Finalizing output document...",
+        procComplete: "Processing Complete!",
+        procStatusLabel: "Conversion Progress:",
+        procSecureNote: "Processing happens securely inside your device"
+      }
+    };
+
+    function applyLanguage(lang) {
+      currentLanguage = lang;
+      document.documentElement.lang = lang;
+      try { localStorage.setItem('dc_lang', lang); } catch(e){}
+
+      const langLabel = document.getElementById('currentLangLabel');
+      if (langLabel) {
+        langLabel.innerText = lang.toUpperCase();
+      }
+      const langBtn = document.getElementById('langToggleBtn');
+      if (langBtn) {
+        langBtn.title = lang === 'sw' ? 'Badili kuwa Kiingereza (Switch to English)' : 'Badili kuwa Kiswahili (Switch to Swahili)';
+      }
+
+      // Update all elements with data-i18n
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (translations[lang] && translations[lang][key] !== undefined) {
+          el.textContent = translations[lang][key];
+        }
+      });
+
+      // Update placeholders
+      document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const key = el.getAttribute('data-i18n-placeholder');
+        if (translations[lang] && translations[lang][key] !== undefined) {
+          el.placeholder = translations[lang][key];
+        }
+      });
+
+      // Update titles
+      document.querySelectorAll('[data-i18n-title]').forEach(el => {
+        const key = el.getAttribute('data-i18n-title');
+        if (translations[lang] && translations[lang][key] !== undefined) {
+          el.title = translations[lang][key];
+        }
+      });
+
+      // Refresh dynamic UI elements
+      if (currentNavTab === 'transactions') renderTransactionsView();
+      if (activeToolTab === 'textToImage') renderTextToImagePreview();
+      if (activeToolTab === 'compress') updateEstimatedSize();
+      if (state.imagesList.length) {
+        const suffix = translations[lang]?.imagesSelectedSuffix || 'picha zilizochaguliwa';
+        const lbl = document.getElementById('imageCountLabel');
+        if (lbl) lbl.innerText = `${state.imagesList.length} ${suffix}`;
+      }
+    }
+
+    function toggleLanguage() {
+      const targetLang = currentLanguage === 'sw' ? 'en' : 'sw';
+      applyLanguage(targetLang);
+    }
+
+    // Initialize Language from localStorage if present
+    try {
+      const savedLang = localStorage.getItem('dc_lang');
+      if (savedLang === 'en' || savedLang === 'sw') {
+        currentLanguage = savedLang;
+      }
+    } catch(e){}
+    applyLanguage(currentLanguage);
+
+    function formatFileSize(bytes) {
+      if (!bytes) return '0 B';
+      const k = 1024, sizes = ['B', 'KB', 'MB', 'GB'], i = Math.floor(Math.log(bytes) / Math.log(k));
+      return (bytes / Math.pow(k, i)).toFixed(1) + ' ' + sizes[i];
+    }
+  </script>
+</body>
+</html>
